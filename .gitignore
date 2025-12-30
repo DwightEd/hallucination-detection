@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Environment
+.env
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Outputs
+outputs/
+*.pkl
+*.pt
+
+# Data (managed separately)
+data/
+
+# DVC
+/dvc.lock
+
+# Logs
+*.log
+logs/
+
+# Jupyter
+.ipynb_checkpoints/

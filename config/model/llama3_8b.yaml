@@ -1,0 +1,13 @@
+# Llama-3-8B-Instruct Configuration
+name: meta-llama/Meta-Llama-3-8B-Instruct
+
+attn_implementation: eager
+dtype: bfloat16
+load_in_4bit: false
+load_in_8bit: false
+device_map: auto
+
+n_layers: 32
+n_heads: 32
+hidden_size: 4096
+trust_remote_code: false

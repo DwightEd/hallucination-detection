@@ -1,0 +1,12 @@
+# TruthfulQA Dataset Configuration
+name: truthfulqa
+path: ${oc.env:DATA_DIR,./data}/TruthfulQA
+
+# Source: huggingface or local
+source: huggingface
+hf_name: truthful_qa
+hf_subset: generation
+
+# Sampling
+max_samples: null
+random_seed: 42

@@ -1,0 +1,10 @@
+# Local Ollama Configuration (OpenAI-compatible)
+provider: openai_compatible
+model: llama3:8b
+
+api_key: ""  # Not needed for local
+base_url: http://localhost:11434/v1
+
+temperature: 0.1
+max_tokens: 2048
+rate_limit: 0  # No limit for local

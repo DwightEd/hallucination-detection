@@ -1,0 +1,11 @@
+# Lookback Lens Method Configuration
+name: lookback_lens
+
+classifier: logistic
+
+params:
+  use_entropy: true
+  use_trends: true
+
+cv_folds: 5
+random_seed: 42

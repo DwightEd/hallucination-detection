@@ -1,0 +1,16 @@
+# LapEigvals Method Configuration
+name: lapeigvals
+
+# Classifier
+classifier: logistic  # logistic, random_forest, mlp
+
+# Method-specific parameters
+params:
+  top_k_eigenvalues: 10
+  use_diagonal_only: true
+  aggregate_layers: all  # all, last, mean
+  aggregate_heads: all   # all, mean
+
+# Training
+cv_folds: 5
+random_seed: 42

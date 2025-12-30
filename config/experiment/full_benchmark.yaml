@@ -1,0 +1,36 @@
+# Full Benchmark Experiment
+defaults:
+  - /dataset: ragtruth
+  - /model: qwen2.5_7b
+  - /method: auto_ensemble
+  - /llm_api: qwen_turbo
+  - _self_
+
+name: full_benchmark
+seed: 42
+
+features:
+  mode: teacher_forcing
+  attention_layers: all
+  hidden_states_layers: "last_n:8"
+  attention_enabled: true
+  hidden_states_enabled: true
+  token_probs_enabled: true
+  token_probs_top_k: 20
+  max_length: 4096
+  hidden_states_pooling: last_token
+
+training:
+  test_split: 0.2
+  cv_folds: 5
+
+evaluation:
+  use_llm_judge: true
+  judge_mode: detailed
+  threshold: 0.5
+
+output:
+  dir: ${oc.env:OUTPUT_DIR,./outputs}/${name}/${now:%Y-%m-%d_%H-%M-%S}
+  save_model: true
+  save_predictions: true
+  save_features: true

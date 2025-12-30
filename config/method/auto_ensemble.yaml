@@ -1,0 +1,16 @@
+# Auto Ensemble Method Configuration
+name: auto_ensemble
+
+classifier: logistic
+
+params:
+  mode: voting
+  methods:
+    - lapeigvals
+    - lookback_lens
+    - entropy
+    - perplexity
+  # weights auto-determined by CV performance
+
+cv_folds: 5
+random_seed: 42

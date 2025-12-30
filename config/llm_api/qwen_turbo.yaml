@@ -1,0 +1,16 @@
+# Qwen Turbo API Configuration (via DashScope)
+provider: qwen
+model: qwen-turbo
+
+# API Key (from environment)
+api_key: ${oc.env:DASHSCOPE_API_KEY}
+
+# Generation parameters
+temperature: 0.1
+max_tokens: 1024
+
+# Rate limiting (requests per minute)
+rate_limit: 60
+
+# System prompt (optional)
+system_prompt: "You are an expert evaluator for detecting hallucinations in AI-generated text."

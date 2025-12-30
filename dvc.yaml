@@ -1,0 +1,86 @@
+# DVC Pipeline for Hallucination Detection
+# Usage: dvc repro
+
+stages:
+  # Stage 1: Extract features
+  extract_features:
+    cmd: >
+      python scripts/extract_features.py
+      --dataset ${dataset}
+      --dataset-path ${dataset_path}
+      --model ${model}
+      --layers ${layers}
+      --max-samples ${max_samples}
+      --output outputs/features/${dataset}_${model_short}.pkl
+    deps:
+      - scripts/extract_features.py
+      - src/
+      - ${dataset_path}
+    params:
+      - dataset
+      - dataset_path
+      - model
+      - model_short
+      - layers
+      - max_samples
+    outs:
+      - outputs/features/${dataset}_${model_short}.pkl
+
+  # Stage 2: Train method
+  train:
+    cmd: >
+      python scripts/train_method.py
+      --features outputs/features/${dataset}_${model_short}.pkl
+      --method ${method}
+      --classifier ${classifier}
+      --cv-folds ${cv_folds}
+      --output outputs/models/${dataset}_${model_short}_${method}.pkl
+    deps:
+      - scripts/train_method.py
+      - outputs/features/${dataset}_${model_short}.pkl
+    params:
+      - method
+      - classifier
+      - cv_folds
+    outs:
+      - outputs/models/${dataset}_${model_short}_${method}.pkl
+      - outputs/models/${dataset}_${model_short}_${method}.metrics.json
+
+  # Stage 3: Evaluate
+  evaluate:
+    cmd: >
+      python scripts/evaluate.py
+      --model outputs/models/${dataset}_${model_short}_${method}.pkl
+      --features outputs/features/${dataset}_${model_short}.pkl
+      --output outputs/results/${dataset}_${model_short}_${method}.json
+    deps:
+      - scripts/evaluate.py
+      - outputs/models/${dataset}_${model_short}_${method}.pkl
+      - outputs/features/${dataset}_${model_short}.pkl
+    outs:
+      - outputs/results/${dataset}_${model_short}_${method}.json
+    metrics:
+      - outputs/results/${dataset}_${model_short}_${method}.json:
+          cache: false
+
+  # Stage 4: LLM Judge (optional)
+  llm_judge:
+    cmd: >
+      python scripts/run_llm_judge.py
+      --dataset ${dataset}
+      --dataset-path ${dataset_path}
+      --provider ${llm_provider}
+      --model ${llm_model}
+      --mode ${judge_mode}
+      --max-samples ${judge_max_samples}
+      --output outputs/judge/${dataset}_${llm_model}.json
+    deps:
+      - scripts/run_llm_judge.py
+      - ${dataset_path}
+    params:
+      - llm_provider
+      - llm_model
+      - judge_mode
+      - judge_max_samples
+    outs:
+      - outputs/judge/${dataset}_${llm_model}.json

@@ -1,0 +1,37 @@
+# Quick Test Experiment (for debugging)
+defaults:
+  - /dataset: ragtruth
+  - /model: qwen2.5_7b_4bit
+  - /method: entropy
+  - _self_
+
+name: quick_test
+seed: 42
+
+# Override dataset for quick test
+dataset:
+  max_samples: 100
+
+features:
+  mode: teacher_forcing
+  attention_layers: "last_n:2"
+  hidden_states_layers: "last_n:2"
+  attention_enabled: true
+  hidden_states_enabled: false
+  token_probs_enabled: true
+  token_probs_top_k: 5
+  max_length: 1024
+
+training:
+  test_split: 0.3
+  cv_folds: 3
+
+evaluation:
+  use_llm_judge: false
+  threshold: 0.5
+
+output:
+  dir: ./outputs/quick_test
+  save_model: false
+  save_predictions: true
+  save_features: false

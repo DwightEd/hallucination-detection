@@ -1,0 +1,44 @@
+# Default Experiment Configuration
+# Usage: python scripts/run_experiment.py experiment=default
+
+# Hydra defaults
+defaults:
+  - /dataset: ragtruth
+  - /model: qwen2.5_7b
+  - /method: lapeigvals
+  - /llm_api: qwen_turbo
+  - _self_
+
+# Experiment name
+name: hallucination_detection
+seed: 42
+
+# Feature extraction
+features:
+  mode: teacher_forcing  # teacher_forcing, generation
+  attention_layers: "last_n:4"
+  hidden_states_layers: "last_n:4"
+  attention_enabled: true
+  hidden_states_enabled: true
+  token_probs_enabled: true
+  token_probs_top_k: 10
+  max_length: 2048
+  hidden_states_pooling: last_token
+
+# Training
+training:
+  test_split: 0.2
+  cv_folds: 5
+  
+# Evaluation
+evaluation:
+  use_llm_judge: false
+  judge_mode: binary  # binary, score, detailed
+  threshold: 0.5
+
+# Output
+output:
+  dir: ${oc.env:OUTPUT_DIR,./outputs}/${name}/${now:%Y-%m-%d_%H-%M-%S}
+  save_model: true
+  save_predictions: true
+  save_features: false  # Large files

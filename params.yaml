@@ -1,0 +1,22 @@
+# DVC Parameters
+
+# Dataset
+dataset: ragtruth
+dataset_path: ./data/RAGTruth
+max_samples: 1000
+
+# Model
+model: Qwen/Qwen2.5-7B-Instruct
+model_short: qwen2.5_7b
+layers: "last_n:4"
+
+# Method
+method: lapeigvals
+classifier: logistic
+cv_folds: 5
+
+# LLM Judge
+llm_provider: qwen
+llm_model: qwen-turbo
+judge_mode: binary
+judge_max_samples: 100

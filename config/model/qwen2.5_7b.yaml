@@ -1,0 +1,22 @@
+# Qwen2.5-7B-Instruct Configuration
+name: Qwen/Qwen2.5-7B-Instruct
+
+# CRITICAL: Must be "eager" for attention extraction
+attn_implementation: eager
+
+# Precision
+dtype: bfloat16
+
+# Quantization (for limited VRAM)
+load_in_4bit: false
+load_in_8bit: false
+
+# Device
+device_map: auto
+
+# Model architecture (auto-detected)
+n_layers: 28
+n_heads: 28
+hidden_size: 3584
+
+trust_remote_code: true

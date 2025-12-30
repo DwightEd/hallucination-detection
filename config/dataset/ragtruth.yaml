@@ -1,0 +1,17 @@
+# RAGTruth Dataset Configuration
+name: ragtruth
+path: ${oc.env:DATA_DIR,./data}/RAGTruth
+
+# Filters
+splits:
+  - train
+  - test
+task_types:
+  - QA
+  - Summary
+  - Data2Text
+exclude_quality: true  # Exclude quality issues
+
+# Sampling
+max_samples: null  # null for all
+random_seed: 42

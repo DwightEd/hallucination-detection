@@ -1,0 +1,10 @@
+# HaluEval Dataset Configuration
+name: halueval
+path: ${oc.env:DATA_DIR,./data}/HaluEval
+
+# Subtask: qa, summarization, dialogue
+subtask: qa
+
+# Sampling
+max_samples: null
+random_seed: 42

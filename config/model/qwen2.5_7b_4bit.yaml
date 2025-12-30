@@ -1,0 +1,15 @@
+# Qwen2.5-7B-Instruct 4-bit Quantized
+name: Qwen/Qwen2.5-7B-Instruct
+
+attn_implementation: eager
+dtype: bfloat16
+
+# 4-bit quantization for ~6GB VRAM
+load_in_4bit: true
+load_in_8bit: false
+
+device_map: auto
+n_layers: 28
+n_heads: 28
+hidden_size: 3584
+trust_remote_code: true
