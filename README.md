@@ -7,12 +7,6 @@
 ### 安装
 
 ```bash
-# 解压所有部分
-unzip hallucination-detection-part1.zip -d hallucination-detection
-unzip -o hallucination-detection-part2.zip -d hallucination-detection
-unzip -o hallucination-detection-part3.zip -d hallucination-detection
-unzip -o hallucination-detection-part4.zip -d hallucination-detection
-unzip -o hallucination-detection-part5.zip -d hallucination-detection
 
 cd hallucination-detection
 
