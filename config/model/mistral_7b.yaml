@@ -1,0 +1,26 @@
+# Mistral-7B-Instruct Configuration
+name: /share/home/tm902089733300000/a903202310/lys/models/Mistral-7B-Instruct-v0.3
+
+# 短名称（用于输出目录名）
+short_name: Mistral-7B-Instruct-v0.3
+
+attn_implementation: eager
+dtype: bfloat16
+load_in_4bit: false
+load_in_8bit: false
+
+n_layers: 32
+n_heads: 32
+hidden_size: 4096
+trust_remote_code: false
+
+# =============================================================================
+# 多GPU配置 - 分布模型到两张卡以分担显存压力
+# =============================================================================
+multi_gpu:
+  enabled: true
+  strategy: balanced  # balanced: 均匀分布到所有GPU
+  # 限制每张卡的显存使用，留出空间给激活值
+  max_memory:
+    0: "18GB"
+    1: "18GB"

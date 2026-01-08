@@ -1,0 +1,86 @@
+# =============================================================================
+# HaloScope - SVD-based Unsupervised Hallucination Detection
+# =============================================================================
+# 论文: Harnessing Unlabeled LLM Generations for Hallucination Detection
+# 链接: https://arxiv.org/abs/2409.17504 (NeurIPS'24)
+#
+# 核心思想:
+# 1. 提取LLM隐藏状态
+# 2. 对隐藏状态进行SVD分解
+# 3. 使用主成分方向上的投影作为幻觉分数
+# 4. 无需标注数据即可检测幻觉
+#
+# 优点: 不需要 full_attention，对显存友好
+# =============================================================================
+
+name: haloscope
+cls_path: src.methods.haloscope.HaloScopeDetector
+
+# -----------------------------------------------------------------------------
+# 特征需求
+# 注意：此方法只需要hidden_states，不需要attention相关特征
+# 这使得它比hypergraph方法更节省内存
+# -----------------------------------------------------------------------------
+required_features:
+  attention_diags: false
+  laplacian_diags: false
+  attention_entropy: false
+  full_attention: false      # ✓ 不需要，OOM安全
+  hidden_states: true        # ✓ 核心特征
+  token_probs: false
+  token_entropy: false
+
+# -----------------------------------------------------------------------------
+# 检测配置
+# -----------------------------------------------------------------------------
+detection:
+  # SVD加权方式
+  # true: 使用加权SVD，考虑不同token的重要性
+  # false: 标准SVD
+  weighted_svd: true
+  
+  # 特征位置 (用于加权)
+  # 0: 第一个token
+  # -1: 最后一个token
+  # 3: 第四个token (推荐)
+  feat_loc_svd: 3
+  
+  # 层选择策略
+  # all: 所有层
+  # last_half: 后半部分层 (推荐)
+  # last_quarter: 后四分之一层
+  # specific: 使用specific_layers指定
+  layer_selection: last_half
+  
+  # 当layer_selection为specific时使用
+  # 支持负数索引，如 [-4, -3, -2, -1] 表示最后4层
+  specific_layers: []
+
+# -----------------------------------------------------------------------------
+# SVD配置
+# -----------------------------------------------------------------------------
+svd_config:
+  # 主成分数量
+  n_components: 10
+  
+  # 是否中心化数据
+  center: true
+  
+  # 是否标准化
+  normalize: false
+
+# -----------------------------------------------------------------------------
+# 分类器配置 (用于 BaseMethod 兼容模式)
+# -----------------------------------------------------------------------------
+classifier: logistic
+cv_folds: 5
+
+# -----------------------------------------------------------------------------
+# 输出配置
+# -----------------------------------------------------------------------------
+output:
+  # 是否保存SVD模型
+  save_svd_model: true
+  
+  # 是否保存中间特征
+  save_intermediate: false

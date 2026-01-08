@@ -1,0 +1,134 @@
+schema: '2.0'
+stages:
+  split_dataset:
+    cmd: python scripts/split_dataset.py
+    deps:
+    - path: config/dataset/
+      hash: md5
+      md5: 3697cfd8191cee9adbf419a60535e725.dir
+      size: 4256
+      nfiles: 3
+    - path: scripts/split_dataset.py
+      hash: md5
+      md5: f073b9c8a84eb707aac78fd30cdfdf9d
+      size: 13669
+    params:
+      params.yaml:
+        datasets:
+        - name: ragtruth
+        seed: 42
+        split:
+          test_ratio: 0.2
+          random_seed: 42
+          stratify: true
+    outs:
+    - path: outputs/splits/
+      hash: md5
+      md5: fd9676c975b3efa7f24eb589196f923d.dir
+      size: 65635388
+      nfiles: 3
+  generate_activations@dataset0-QA-model0:
+    cmd: CUDA_VISIBLE_DEVICES=0,1 python scripts/generate_activations.py 
+      dataset.name=ragtruth dataset.task_type=QA model=mistral_7b 
+      model.short_name=Mistral-7B-Instruct-v0.3 features.mode=teacher_forcing 
+      seed=42
+    deps:
+    - path: config/
+      hash: md5
+      md5: b3611b770fe30348c648cdff42aa75b7.dir
+      size: 40111
+      nfiles: 29
+    - path: scripts/generate_activations.py
+      hash: md5
+      md5: f02d9ebf060b7b0f546a96eb9dd94c60
+      size: 21357
+    - path: src/
+      hash: md5
+      md5: c05eeece71ffb9404a48c26006054ac7.dir
+      size: 349480
+      nfiles: 39
+    - path: utils/
+      hash: md5
+      md5: 43f1f03a85e608cc8117075df8655580.dir
+      size: 43320
+      nfiles: 4
+    params:
+      params.yaml:
+        features.mode: teacher_forcing
+        seed: 42
+    outs:
+    - path: outputs/features/ragtruth_QA/Mistral-7B-Instruct-v0.3/seed_42/
+      hash: md5
+      md5: ed66b15b0d69538d2cc2eb319b60beb7.dir
+      size: 4924257634
+      nfiles: 946
+  generate_activations@dataset0-Summary-model0:
+    cmd: CUDA_VISIBLE_DEVICES=0,1 python scripts/generate_activations.py 
+      dataset.name=ragtruth dataset.task_type=Summary model=mistral_7b 
+      model.short_name=Mistral-7B-Instruct-v0.3 features.mode=teacher_forcing 
+      seed=42
+    deps:
+    - path: config/
+      hash: md5
+      md5: b3611b770fe30348c648cdff42aa75b7.dir
+      size: 40111
+      nfiles: 29
+    - path: scripts/generate_activations.py
+      hash: md5
+      md5: f02d9ebf060b7b0f546a96eb9dd94c60
+      size: 21357
+    - path: src/
+      hash: md5
+      md5: c05eeece71ffb9404a48c26006054ac7.dir
+      size: 349480
+      nfiles: 39
+    - path: utils/
+      hash: md5
+      md5: 43f1f03a85e608cc8117075df8655580.dir
+      size: 43320
+      nfiles: 4
+    params:
+      params.yaml:
+        features.mode: teacher_forcing
+        seed: 42
+    outs:
+    - path: outputs/features/ragtruth_Summary/Mistral-7B-Instruct-v0.3/seed_42/
+      hash: md5
+      md5: 1d414da9b48dc498182b99757ba59fe0.dir
+      size: 9152969175
+      nfiles: 946
+  generate_activations@dataset0-Data2txt-model0:
+    cmd: CUDA_VISIBLE_DEVICES=0,1 python scripts/generate_activations.py 
+      dataset.name=ragtruth dataset.task_type=Data2txt model=mistral_7b 
+      model.short_name=Mistral-7B-Instruct-v0.3 features.mode=teacher_forcing 
+      seed=42
+    deps:
+    - path: config/
+      hash: md5
+      md5: b3611b770fe30348c648cdff42aa75b7.dir
+      size: 40111
+      nfiles: 29
+    - path: scripts/generate_activations.py
+      hash: md5
+      md5: f02d9ebf060b7b0f546a96eb9dd94c60
+      size: 21357
+    - path: src/
+      hash: md5
+      md5: c05eeece71ffb9404a48c26006054ac7.dir
+      size: 349480
+      nfiles: 39
+    - path: utils/
+      hash: md5
+      md5: 43f1f03a85e608cc8117075df8655580.dir
+      size: 43320
+      nfiles: 4
+    params:
+      params.yaml:
+        features.mode: teacher_forcing
+        seed: 42
+    outs:
+    - path: outputs/features/ragtruth_Data2txt/Mistral-7B-Instruct-v0.3/seed_42/
+      hash: md5
+      md5: 1946c7b8f60a8dc01621ff37416988fc.dir
+      size: 11817237600
+      nfiles: 1039

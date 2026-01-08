@@ -1,0 +1,7 @@
+name: ragtruth
+cls_path: src.prompts.base.RAGTruthPromptConfig
+
+# RAGTruth uses pre-built prompts from source_info
+use_original_prompt: true
+question_key: prompt
+context_key:  null

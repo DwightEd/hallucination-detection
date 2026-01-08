@@ -1,0 +1,13 @@
+name: truthfulqa
+path: null  # Will be downloaded from HuggingFace
+subset: generation
+cls_path: src.data.truthfulqa.TruthfulQADataset
+
+splits:
+  - validation
+task_types: null
+max_samples: null
+
+max_answer_tokens: 128
+target_column_name: answer
+test_split_name: validation

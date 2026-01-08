@@ -1,0 +1,11 @@
+name: halueval_qa
+path: data/HaluEval/qa_data.json
+cls_path: src.data.halueval.HaluEvalQADataset
+
+splits: null
+task_types: null
+max_samples: null
+
+max_answer_tokens: 256
+target_column_name: hallucinated_answer
+test_split_name: null

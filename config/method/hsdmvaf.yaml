@@ -1,0 +1,105 @@
+# =============================================================================
+# HSDMVAF - Hallucinated Span Detection with Multi-View Attention Features
+# =============================================================================
+# 论文: "Hallucinated Span Detection with Multi-View Attention Features"
+# 链接: https://aclanthology.org/2025.starsem-1.31/
+# 代码: https://github.com/Ogamon958/mva_hal_
+#
+# 核心思想:
+# 论文从注意力矩阵中提取三种互补的 Multi-View Attention Features:
+#
+# 1. Average Incoming Attention (avg_in):
+#    - 每个 token 收到的平均注意力权重
+#    - 表示该 token 对其他 token 的影响程度
+#    - 高值表示该 token 是"关键" token
+#
+# 2. Diversity of Incoming Attention (div_in):
+#    - 入向注意力的多样性（使用熵衡量）
+#    - 表示注意力是否均匀分布在该 token 上
+#
+# 3. Diversity of Outgoing Attention (div_out):
+#    - 出向注意力的多样性
+#    - 该 token 在生成时关注其他 token 的分散程度
+#    - 高值表示该 token 是基于广泛上下文生成的
+#
+# 这些特征输入到 Transformer Encoder + CRF 进行序列标注。
+# =============================================================================
+
+name: hsdmvaf
+aliases:
+  - mva
+  - multi_view_attention
+
+cls_path: src.methods.hsdmvaf.HSDMVAFMethod
+
+# -----------------------------------------------------------------------------
+# 特征需求
+# 
+# 最佳配置：使用 full_attention 获取完整的 MVA 特征
+# 备选配置：使用 attn_diags + attn_entropy 进行近似
+# -----------------------------------------------------------------------------
+required_features:
+  attention_diags: true      # ✓ 备选：注意力对角线（近似 MVA）
+  laplacian_diags: false
+  attention_entropy: true    # ✓ 备选：注意力熵（近似 div_out）
+  full_attention: true       # ✓ 最佳：完整注意力矩阵（精确 MVA）
+  hidden_states: false
+  token_probs: false
+  token_entropy: false
+
+# -----------------------------------------------------------------------------
+# 方法参数
+# -----------------------------------------------------------------------------
+params:
+  # 样本级别聚合方式
+  # - "max": 取最大值（对任何幻觉敏感）
+  # - "mean": 取平均值
+  # - "any": 任何 token 超过阈值则为幻觉
+  pooling: max
+  
+  # 是否优先使用完整注意力矩阵
+  # true: 使用 full_attention 计算精确 MVA 特征
+  # false: 使用 attn_diags 近似
+  use_full_attention: true
+  
+  # 限制使用的层数和头数（避免特征维度过大）
+  max_layers: 4
+  max_heads: 8
+
+# -----------------------------------------------------------------------------
+# 模型架构配置（用于独立的 HSDMVAFDetector）
+# -----------------------------------------------------------------------------
+encoder:
+  hidden_dim: 256
+  num_heads: 8
+  num_layers: 4
+  feedforward_dim: 512
+  dropout: 0.1
+
+# 是否使用 CRF 解码
+use_crf: true
+
+# -----------------------------------------------------------------------------
+# 分类器配置（用于 BaseMethod 兼容模式）
+# -----------------------------------------------------------------------------
+classifier: logistic
+cv_folds: 5
+
+classifier_params:
+  max_iter: 1000
+  C: 1.0
+  class_weight: balanced
+
+# -----------------------------------------------------------------------------
+# 训练配置（用于独立的 HSDMVAFDetector）
+# -----------------------------------------------------------------------------
+training:
+  epochs: 50
+  batch_size: 16
+  learning_rate: 1.0e-4
+  weight_decay: 0.01
+  
+  early_stopping:
+    enabled: true
+    patience: 10
+    monitor: val_f1

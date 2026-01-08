@@ -1,0 +1,151 @@
+# =============================================================================
+# DVC Pipeline for Hallucination Detection
+# =============================================================================
+# 目录结构: {base}/{dataset}/{model}/seed_{seed}/{task_type}/
+# 
+# 特征提取阶段会根据 params.yaml 中的 methods 列表计算特征需求并集，
+# 确保一次提取满足所有方法的需要。
+# =============================================================================
+
+vars:
+  - params.yaml
+
+stages:
+  # ===========================================================================
+  # Stage 1: 数据分割
+  # ===========================================================================
+  # 先分割数据，保留所有原始信息（prompt, id, response等）
+  # 可选择在分割后删除原始数据文件
+  # ===========================================================================
+  split_dataset:
+    cmd: python scripts/split_dataset.py
+    deps:
+      - scripts/split_dataset.py
+      - config/dataset/
+    params:
+      - datasets
+      - split
+      - seed
+    outs:
+      - outputs/splits/:
+          persist: true
+
+  # ===========================================================================
+  # Stage 2: 特征提取 (按任务类型分别提取)
+  # ===========================================================================
+  # 特征提取会自动计算所有 methods 的特征需求并集
+  # 一次前向传播提取所有所需特征
+  # 
+  # 新目录结构: {features_dir}/{dataset}/{model}/seed_{seed}/{task_type}/
+  # ===========================================================================
+  generate_activations: 
+    matrix: 
+      dataset: ${datasets}
+      task_type: ${task_types}
+      model: ${models}
+    cmd: >-
+      CUDA_VISIBLE_DEVICES=${cuda_devices}
+      python scripts/generate_activations.py
+      dataset.name=${item.dataset.name}
+      dataset.task_type=${item.task_type}
+      model=${item.model.name}
+      model.short_name=${item.model.short_name}
+      features.mode=${features.mode}
+      seed=${seed}
+      methods=[${methods_str}]
+      allow_full_attention=${allow_full_attention}
+    deps:
+      - scripts/generate_activations.py
+      - src/
+      - config/
+      - utils/
+      - outputs/splits/
+    params:
+      - features.mode
+      - seed
+      - methods
+      - allow_full_attention
+    outs:
+      # 新目录结构: {dataset}/{model}/seed_{seed}/{task_type}/
+      - outputs/features/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/: 
+          persist: true
+
+  # ===========================================================================
+  # Stage 3: 训练探测器
+  # ===========================================================================
+  # 新目录结构: {models_dir}/{dataset}/{model}/seed_{seed}/{task_type}/{method}/probe/
+  # ===========================================================================
+  train_probe: 
+    matrix: 
+      dataset: ${datasets}
+      task_type: ${task_types}
+      model: ${models}
+      method: ${methods}
+    cmd: >-
+      python scripts/train_probe.py
+      dataset.name=${item.dataset.name}
+      dataset.task_type=${item.task_type}
+      model=${item.model.name}
+      model.short_name=${item.model.short_name}
+      method=${item.method}
+      seed=${seed}
+    deps:
+      - scripts/train_probe.py
+      - src/
+      # 新目录结构依赖
+      - outputs/features/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/
+      - outputs/splits/
+    params:
+      - seed
+      - cv_folds
+    outs:
+      # 新目录结构: {dataset}/{model}/seed_{seed}/{task_type}/{method}/probe/
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/probe/: 
+          persist: true
+
+  # ===========================================================================
+  # Stage 4: 评估
+  # ===========================================================================
+  evaluate:
+    matrix: 
+      dataset: ${datasets}
+      task_type: ${task_types}
+      model: ${models}
+      method: ${methods}
+    cmd: >-
+      python scripts/evaluate.py
+      dataset.name=${item.dataset.name}
+      dataset.task_type=${item.task_type}
+      model=${item.model.name}
+      model.short_name=${item.model.short_name}
+      method=${item.method}
+      seed=${seed}
+    deps: 
+      - scripts/evaluate.py
+      # 新目录结构依赖
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/probe/
+      - outputs/features/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/
+      - outputs/splits/
+    params:
+      - seed
+    metrics:
+      # 新目录结构
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/eval_results.json:
+          cache: false
+    plots:
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/roc_curve.json:
+          cache: false
+          x: fpr
+          y: tpr
+
+  # ===========================================================================
+  # Stage 5: 汇总结果
+  # ===========================================================================
+  aggregate:
+    cmd: python scripts/aggregate_results.py
+    deps:
+      - scripts/aggregate_results.py
+      - outputs/models/
+    metrics:
+      - outputs/results/summary.json:
+          cache: false

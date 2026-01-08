@@ -1,0 +1,51 @@
+# =============================================================================
+# Token Entropy - Token 级别熵特征的幻觉检测方法
+# =============================================================================
+# 注意：这与 Semantic Entropy Probes (SEPs) 不同
+# - Token Entropy: 直接使用 token 预测概率的熵和注意力熵
+# - SEPs: 从 hidden states 学习预测 semantic entropy
+#
+# Token Entropy 使用以下特征：
+# 1. Token 预测概率的熵统计量（均值、标准差、最大值等）
+# 2. Attention 熵统计量
+# 3. Perplexity
+# =============================================================================
+
+name: token_entropy
+cls_path: src.methods.token_entropy.TokenEntropyMethod
+
+# 向后兼容的别名
+aliases:
+  - entropy
+
+classifier: logistic
+cv_folds: 5
+random_seed: ${seed}
+
+# -----------------------------------------------------------------------------
+# 特征需求
+# -----------------------------------------------------------------------------
+required_features:
+  attention_diags: false
+  laplacian_diags: false
+  attention_entropy: true    # ✓ 需要注意力熵
+  full_attention: false
+  hidden_states: false
+  token_probs: true          # ✓ 需要 token 概率
+  token_entropy: true        # ✓ 需要 token 熵
+
+# -----------------------------------------------------------------------------
+# 方法参数
+# -----------------------------------------------------------------------------
+params:
+  use_token_entropy: true
+  use_attention_entropy: true
+  use_perplexity: true
+
+# -----------------------------------------------------------------------------
+# 分类器配置
+# -----------------------------------------------------------------------------
+classifier_params:
+  max_iter: 1000
+  C: 1.0
+  class_weight: balanced
