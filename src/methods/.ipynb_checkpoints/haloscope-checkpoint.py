@@ -101,7 +101,7 @@ class HaloScopeDetector:
             raise ValueError("hidden_states not found in data")
         
         if isinstance(hidden_states, torch.Tensor):
-            hidden_states = hidden_states.cpu().numpy()
+            hidden_states = hidden_states.cpu().float().numpy()
         
         # hidden_states形状可能是:
         # [num_layers, seq_len, hidden_dim] 或
@@ -441,7 +441,7 @@ class HaloScopeMethod(BaseMethod):
         
         # 转换为numpy
         if isinstance(hidden_states, torch.Tensor):
-            hidden_states = hidden_states.cpu().numpy()
+            hidden_states = hidden_states.cpu().float().numpy()
         
         # 获取处理后的隐藏状态
         data = {
@@ -466,7 +466,7 @@ class HaloScopeMethod(BaseMethod):
             if feat.hidden_states is not None:
                 hs = feat.hidden_states
                 if isinstance(hs, torch.Tensor):
-                    hs = hs.cpu().numpy()
+                    hs = hs.cpu().float().numpy()
                 all_data.append({
                     'hidden_states': hs,
                     'response_start': feat.prompt_len if hasattr(feat, 'prompt_len') else 0

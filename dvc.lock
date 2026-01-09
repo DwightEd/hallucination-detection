@@ -185,12 +185,12 @@ stages:
       nfiles: 3
     - path: scripts/train_probe.py
       hash: md5
-      md5: c928d4c21835eaf2a02796d8a66a1f1d
-      size: 16188
+      md5: dbc4dce831b24647990993c98f2c8334
+      size: 9929
     - path: src/
       hash: md5
-      md5: dae5b929fd3bc831258abd0956a90031.dir
-      size: 1017622
+      md5: 69c02c5b8399bab45946fada38e083bc.dir
+      size: 1017573
       nfiles: 93
     params:
       params.yaml:
@@ -200,9 +200,9 @@ stages:
     - path: 
         outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/lapeigvals/probe/
       hash: md5
-      md5: 01b2f0f496d80c9fc9e745b174f9530c.dir
-      size: 495725
-      nfiles: 3
+      md5: 917bec26d4dbb7878064a27f3517867f.dir
+      size: 498329
+      nfiles: 5
   train_probe@dataset0-QA-model0-lookback_lens:
     cmd: python scripts/train_probe.py dataset.name=ragtruth 
       dataset.task_type=QA model=mistral_7b 
@@ -220,12 +220,12 @@ stages:
       nfiles: 3
     - path: scripts/train_probe.py
       hash: md5
-      md5: c928d4c21835eaf2a02796d8a66a1f1d
-      size: 16188
+      md5: dbc4dce831b24647990993c98f2c8334
+      size: 9929
     - path: src/
       hash: md5
-      md5: dae5b929fd3bc831258abd0956a90031.dir
-      size: 1017622
+      md5: 69c02c5b8399bab45946fada38e083bc.dir
+      size: 1017573
       nfiles: 93
     params:
       params.yaml:
@@ -235,6 +235,6 @@ stages:
     - path: 
         outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/lookback_lens/probe/
       hash: md5
-      md5: cf36b219c93f9968af9a342f0e1b730d.dir
-      size: 364603
-      nfiles: 3
+      md5: b0ec9967d68bdb05111a87675943a77f.dir
+      size: 367177
+      nfiles: 5

@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""训练幻觉检测探针
-输出: Train AUROC, Train AUPR (样本内指标，不使用交叉验证)
+"""Train hallucination detection probe.
+
+Outputs:
+- Train AUROC, Train AUPR (in-sample metrics)
+- Performance metrics (training time, peak memory, model size)
 """
 import sys
-import re
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional, List
+from typing import Optional, List
 
 import hydra
-from omegaconf import DictConfig, OmegaConf, ListConfig
+from omegaconf import DictConfig, OmegaConf
 import torch
 import numpy as np
 from sklearn.metrics import roc_auc_score, average_precision_score
@@ -23,18 +25,23 @@ from src.core import (
     set_seed, setup_logging,
 )
 from src.methods import create_method
+from src.utils.metrics_tracker import MetricsTracker
 
 logger = logging.getLogger(__name__)
 
 
-def parse_task_types(task_types: Any) -> Optional[List[str]]:
-    """解析 task_types 配置为列表"""
+# =============================================================================
+# Path Utilities
+# =============================================================================
+
+def parse_task_types(task_types) -> Optional[List[str]]:
+    """Parse task_types config to list."""
     if task_types is None:
         return None
     task_str = str(task_types).strip()
     if task_str.lower() in ('null', 'none', '[]', ''):
         return None
-    if isinstance(task_types, (list, ListConfig)):
+    if isinstance(task_types, (list,)):
         if len(task_types) == 0:
             return None
         return [str(t).strip().strip("'\"") for t in task_types if str(t).strip()]
@@ -42,13 +49,14 @@ def parse_task_types(task_types: Any) -> Optional[List[str]]:
         inner = task_str[1:-1].strip()
         if not inner:
             return None
+        import re
         parts = re.split(r'[,\s]+', inner)
         return [p.strip().strip("'\"") for p in parts if p.strip().strip("'\"")]
     return [task_str.strip("'\"")]
 
 
 def get_task_suffix(cfg: DictConfig) -> str:
-    """获取 task 后缀用于目录命名"""
+    """Get task suffix for directory naming."""
     task_type = cfg.dataset.get('task_type', None)
     if task_type:
         parsed = parse_task_types(task_type)
@@ -60,25 +68,30 @@ def get_task_suffix(cfg: DictConfig) -> str:
 
 
 def get_model_short_name(cfg: DictConfig) -> str:
+    """Get model short name."""
     if hasattr(cfg.model, 'short_name') and cfg.model.short_name:
         return cfg.model.short_name
     return cfg.model.name.split("/")[-1]
 
 
 def get_features_dir(cfg: DictConfig) -> Path:
-    """特征目录: {features_dir}/{dataset}/{model}/seed_{seed}/{task_type}/"""
+    """Features directory: {features_dir}/{dataset}/{model}/seed_{seed}/{task_type}/"""
     base_dir = Path(cfg.features_dir)
     return base_dir / cfg.dataset.name / get_model_short_name(cfg) / f"seed_{cfg.seed}" / get_task_suffix(cfg)
 
 
 def get_output_dir(cfg: DictConfig) -> Path:
-    """输出目录: {models_dir}/{dataset}/{model}/seed_{seed}/{task_type}/{method}/probe/"""
+    """Output directory: {models_dir}/{dataset}/{model}/seed_{seed}/{task_type}/{method}/probe/"""
     base_dir = Path(cfg.models_dir)
     return base_dir / cfg.dataset.name / get_model_short_name(cfg) / f"seed_{cfg.seed}" / get_task_suffix(cfg) / cfg.method.name / "probe"
 
 
+# =============================================================================
+# Data Loading
+# =============================================================================
+
 def load_features(features_dir: Path) -> tuple:
-    """加载特征文件"""
+    """Load feature files."""
     metadata_path = features_dir / "metadata.json"
     answers_path = features_dir / "answers.json"
     
@@ -88,7 +101,7 @@ def load_features(features_dir: Path) -> tuple:
     with open(metadata_path) as f:
         metadata = json.load(f)
     
-    # 加载样本信息
+    # Load sample info
     samples = []
     if answers_path.exists():
         with open(answers_path) as f:
@@ -120,7 +133,7 @@ def load_features(features_dir: Path) -> tuple:
                 }
             ))
     
-    # 加载特征
+    # Load features
     features_subdir = features_dir / "features"
     if not features_subdir.exists():
         features_subdir = features_dir
@@ -142,11 +155,11 @@ def load_features(features_dir: Path) -> tuple:
             loaded_features[key] = torch.load(filepath, weights_only=False)
             logger.info(f"Loaded {key}")
     
-    # 加载标签
+    # Load labels
     labels_path = features_dir / "labels.pt"
     labels = torch.load(labels_path, weights_only=False) if labels_path.exists() else torch.tensor([s.label or 0 for s in samples])
     
-    # 构建 ExtractedFeatures 列表
+    # Build ExtractedFeatures list
     sample_ids = metadata.get("sample_ids", [s.id for s in samples])
     features_list = []
     
@@ -179,7 +192,7 @@ def load_features(features_dir: Path) -> tuple:
 
 
 def split_data(features_list, samples):
-    """按 split 字段分割数据"""
+    """Split data by split field."""
     train_features, train_labels = [], []
     test_features, test_labels = [], []
     
@@ -196,7 +209,7 @@ def split_data(features_list, samples):
 
 
 def compute_metrics(method, features, labels, prefix=""):
-    """计算 AUROC 和 AUPR"""
+    """Compute AUROC and AUPR."""
     if not features:
         return {}
     predictions = method.predict_batch(features)
@@ -215,6 +228,10 @@ def compute_metrics(method, features, labels, prefix=""):
     
     return metrics
 
+
+# =============================================================================
+# Main
+# =============================================================================
 
 @hydra.main(version_base=None, config_path="../config", config_name="config")
 def main(cfg: DictConfig) -> None:
@@ -242,15 +259,21 @@ def main(cfg: DictConfig) -> None:
 
     logger.info(f"Train: {len(train_features)} ({sum(train_labels)} pos), Test: {len(test_features)}")
 
-    # 构建方法配置并创建方法
+    # Build method config and create method
     method_config = MethodConfig(**OmegaConf.to_container(cfg.method, resolve=True))
     method = create_method(method_config.name, config=method_config)
 
-    # 训练 (不使用交叉验证)
-    logger.info("Training...")
-    fit_metrics = method.fit(train_features, train_labels, cv=False)
+    # Initialize metrics tracker
+    tracker = MetricsTracker(method_name=cfg.method.name)
+    tracker.set_sample_info(n_samples=len(train_features))
     
-    # 计算训练集指标
+    # Train (with metrics tracking)
+    logger.info("Training...")
+    tracker.start()
+    fit_metrics = method.fit(train_features, train_labels, cv=False)
+    tracker.stop()
+    
+    # Compute training set metrics
     train_metrics = compute_metrics(method, train_features, train_labels, "train_")
     metrics = {**fit_metrics, **train_metrics}
 
@@ -259,11 +282,28 @@ def main(cfg: DictConfig) -> None:
     logger.info(f"Train AUPR:  {metrics.get('train_aupr', 0):.4f}")
     logger.info("=" * 40)
 
-    # 保存
+    # Save model
     output_dir = get_output_dir(cfg)
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    method.save(output_dir / "model.pkl")
+    model_path = output_dir / "model.pkl"
+    method.save(model_path)
+    
+    # Get model size and finalize performance metrics
+    tracker.set_model_path(model_path)
+    perf_metrics = tracker.get_metrics()
+    
+    # Log performance metrics
+    logger.info("")
+    logger.info("Performance Metrics:")
+    logger.info(f"  Training Time: {perf_metrics.training_time_seconds:.2f}s")
+    logger.info(f"  Peak CPU Memory: {perf_metrics.peak_cpu_memory_mb:.1f} MB")
+    logger.info(f"  Peak GPU Memory: {perf_metrics.peak_gpu_memory_mb:.1f} MB")
+    logger.info(f"  Model Size: {perf_metrics.model_size_mb:.2f} MB")
+    
+    # Combine all metrics
+    metrics["performance"] = perf_metrics.to_dict()
+    
     with open(output_dir / "train_metrics.json", "w") as f:
         json.dump(metrics, f, indent=2)
     OmegaConf.save(cfg, output_dir / "config.yaml")
