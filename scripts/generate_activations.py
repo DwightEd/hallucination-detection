@@ -677,6 +677,7 @@ def finalize_outputs(
         ("attn_entropy", "attn_entropy.pt"),
         ("hidden_states", "hidden_states.pt"),
         ("token_probs", "token_probs.pt"),
+        ("token_entropy", "token_entropy.pt"),
         ("full_attentions", "full_attentions.pt"),
     ]
     
