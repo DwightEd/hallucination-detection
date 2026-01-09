@@ -17,6 +17,7 @@ name: lapeigvals
 cls_path: src.methods.lapeigvals.LapEigvalsMethod
 
 classifier: logistic
+cv_folds: 5
 random_seed: ${seed}
 
 # -----------------------------------------------------------------------------

@@ -5,7 +5,6 @@
 name: haloscope
 cls_path: src.methods.haloscope.HaloScopeMethod
 classifier: logistic
-cv_folds: 5
 random_seed: ${seed}
 
 # 特征需求: 只需要 hidden_states

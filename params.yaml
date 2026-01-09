@@ -54,7 +54,7 @@ methods_str: "lapeigvals,lookback_lens,haloscope,hsdmvaf"
 features: 
   mode: teacher_forcing
   attention_layers: all
-  max_length: 4096
+  max_length: 2048
   store_mode: incremental
   batch_size: 1
 

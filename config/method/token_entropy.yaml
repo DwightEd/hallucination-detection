@@ -4,7 +4,6 @@
 name: token_entropy
 cls_path: src.methods.token_entropy.TokenEntropyMethod
 classifier: logistic
-cv_folds: 5
 random_seed: ${seed}
 
 # 特征需求: token_probs, token_entropy, attention_entropy

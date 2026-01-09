@@ -27,7 +27,6 @@
 name: semantic_entropy_probes
 cls_path: src.methods.semantic_entropy_probes.SemanticEntropyProbesMethod
 classifier: logistic
-cv_folds: 5
 random_seed: ${seed}
 
 # 特征需求: 只需要 hidden_states

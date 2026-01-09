@@ -15,6 +15,7 @@ name: hypergraph
 cls_path: src.methods.hypergraph.HypergraphMethod
 
 classifier: logistic
+cv_folds: 5
 random_seed: ${seed}
 
 # -----------------------------------------------------------------------------

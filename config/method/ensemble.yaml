@@ -2,7 +2,6 @@ name: ensemble
 cls_path: src.methods.ensemble.EnsembleMethod
 
 classifier: logistic
-cv_folds: 5
 random_seed: ${seed}
 
 params:
