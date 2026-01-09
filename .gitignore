@@ -18,3 +18,7 @@ outputs/
 *.pt
 *.pkl
 *.bin
+outputs/
+*.pt
+*.pkl
+*.bin

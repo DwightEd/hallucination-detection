@@ -492,7 +492,11 @@ class HSDMVAFMethod(BaseMethod):
         
         # 转换为 numpy
         if isinstance(mva_features, torch.Tensor):
-            mva_features = mva_features.numpy()
+            mva_features = mva_features.float().cpu().numpy()
+        
+        # Handle NaN/Inf
+        if np.any(~np.isfinite(mva_features)):
+            mva_features = np.nan_to_num(mva_features, nan=0.0, posinf=1.0, neginf=-1.0)
         
         # 聚合为样本级别特征
         # [resp_len, feature_dim] -> [aggregated_dim]
@@ -515,7 +519,13 @@ class HSDMVAFMethod(BaseMethod):
         # 最后一个 token（通常最重要）
         sample_features.append(mva_features[-1])
         
-        return np.concatenate(sample_features).astype(np.float32)
+        result = np.concatenate(sample_features).astype(np.float32)
+        
+        # Final NaN check
+        if np.any(~np.isfinite(result)):
+            result = np.nan_to_num(result, nan=0.0, posinf=1.0, neginf=-1.0)
+        
+        return result
 
 
 # =============================================================================

@@ -95,29 +95,29 @@ def compute_laplacian_features_from_diagonal(
     else:
         response_diag = laplacian_diag
     
-    # Compute statistics per layer and head
-    features = []
-    
+    # Compute statistics per layer and head - vectorized
     n_layers, n_heads = response_diag.shape[:2]
+    response_diag = response_diag.float()
     
-    for layer in range(n_layers):
-        for head in range(n_heads):
-            diag = response_diag[layer, head].float().cpu().numpy()
-            
-            if len(diag) > 0:
-                features.extend([
-                    np.mean(diag),           # Mean
-                    np.std(diag),            # Std
-                    np.max(diag),            # Max
-                    np.min(diag),            # Min
-                    np.median(diag),         # Median
-                    np.percentile(diag, 25), # Q1
-                    np.percentile(diag, 75), # Q3
-                ])
-            else:
-                features.extend([0.0] * 7)
+    if response_diag.shape[-1] == 0:
+        return np.zeros(n_layers * n_heads * 7, dtype=np.float32)
     
-    return np.array(features, dtype=np.float32)
+    # Convert to numpy for percentile computation
+    response_np = response_diag.cpu().numpy()
+    
+    # Vectorized statistics [n_layers, n_heads]
+    diag_mean = np.mean(response_np, axis=-1)
+    diag_std = np.std(response_np, axis=-1)
+    diag_max = np.max(response_np, axis=-1)
+    diag_min = np.min(response_np, axis=-1)
+    diag_median = np.median(response_np, axis=-1)
+    diag_q1 = np.percentile(response_np, 25, axis=-1)
+    diag_q3 = np.percentile(response_np, 75, axis=-1)
+    
+    # Stack and flatten [n_layers, n_heads, 7] -> [n_layers * n_heads * 7]
+    features = np.stack([diag_mean, diag_std, diag_max, diag_min, diag_median, diag_q1, diag_q3], axis=-1)
+    
+    return features.flatten().astype(np.float32)
 
 
 @METHODS.register("lapeigvals", aliases=["lap_eigvals", "laplacian_eigenvalues"])
@@ -192,6 +192,10 @@ class LapEigvalsMethod(BaseMethod):
             )
             feat_vec = np.concatenate([feat_vec, entropy_features])
         
+        # Handle NaN/Inf
+        if np.any(~np.isfinite(feat_vec)):
+            feat_vec = np.nan_to_num(feat_vec, nan=0.0, posinf=1.0, neginf=-1.0)
+        
         return feat_vec
     
     def _compute_diagonal_stats(
@@ -200,48 +204,43 @@ class LapEigvalsMethod(BaseMethod):
         response_start: int,
         response_len: int,
     ) -> np.ndarray:
-        """Compute statistics from diagonal tensor."""
+        """Compute statistics from diagonal tensor - vectorized."""
         # Focus on response portion
         if response_len > 0 and response_start + response_len <= diag.shape[-1]:
             response_diag = diag[:, :, response_start:response_start + response_len]
         else:
             response_diag = diag
         
-        features = []
         n_layers, n_heads = response_diag.shape[:2]
         
         # Aggregate based on config
         if self.aggregate_layers == "last":
-            layers_to_use = [n_layers - 1]
+            response_diag = response_diag[-1:, :, :]
         elif self.aggregate_layers == "mean":
-            # Use mean across layers
             response_diag = response_diag.mean(dim=0, keepdim=True)
-            layers_to_use = [0]
-        else:  # all
-            layers_to_use = range(n_layers)
         
         if self.aggregate_heads == "mean":
             response_diag = response_diag.mean(dim=1, keepdim=True)
-            heads_to_use = [0]
-        else:  # all
-            heads_to_use = range(response_diag.shape[1])
         
-        for layer_idx, layer in enumerate(layers_to_use):
-            for head_idx, head in enumerate(heads_to_use):
-                if layer_idx < response_diag.shape[0] and head_idx < response_diag.shape[1]:
-                    d = response_diag[layer_idx, head_idx].float().cpu().numpy()
-                    
-                    if len(d) > 0:
-                        features.extend([
-                            np.mean(d),
-                            np.std(d),
-                            np.max(d),
-                            np.min(d),
-                        ])
-                    else:
-                        features.extend([0.0] * 4)
+        # Check for empty response
+        if response_diag.shape[-1] == 0:
+            n_out_layers = response_diag.shape[0]
+            n_out_heads = response_diag.shape[1]
+            return np.zeros(n_out_layers * n_out_heads * 4, dtype=np.float32)
         
-        return np.array(features, dtype=np.float32)
+        # Convert to numpy for vectorized computation
+        response_np = response_diag.float().cpu().numpy()
+        
+        # Vectorized statistics [n_layers, n_heads]
+        diag_mean = np.mean(response_np, axis=-1)
+        diag_std = np.std(response_np, axis=-1)
+        diag_max = np.max(response_np, axis=-1)
+        diag_min = np.min(response_np, axis=-1)
+        
+        # Stack and flatten
+        features = np.stack([diag_mean, diag_std, diag_max, diag_min], axis=-1)
+        
+        return features.flatten().astype(np.float32)
 
 
 @METHODS.register("lapeigvals_full", aliases=["lap_eigvals_full"])

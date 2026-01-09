@@ -103,6 +103,10 @@ class HaloScopeDetector:
         if isinstance(hidden_states, torch.Tensor):
             hidden_states = hidden_states.cpu().float().numpy()
         
+        # Handle NaN and Inf values
+        if np.any(~np.isfinite(hidden_states)):
+            hidden_states = np.nan_to_num(hidden_states, nan=0.0, posinf=1.0, neginf=-1.0)
+        
         # hidden_states形状可能是:
         # [num_layers, seq_len, hidden_dim] 或
         # [num_layers+1, seq_len, hidden_dim] (包含embedding层)
@@ -149,6 +153,10 @@ class HaloScopeDetector:
         if len(hidden.shape) == 1:
             hidden = hidden[np.newaxis, :]
         
+        # Handle NaN/Inf
+        if np.any(~np.isfinite(hidden)):
+            hidden = np.nan_to_num(hidden, nan=0.0, posinf=1.0, neginf=-1.0)
+        
         # 标准化
         if self.center and self.mean_hidden is not None:
             hidden = hidden - self.mean_hidden
@@ -160,21 +168,30 @@ class HaloScopeDetector:
         
         if self.svd_components is None:
             # 如果没有预计算的SVD，直接使用hidden的norm
-            return float(np.linalg.norm(hidden_flat))
+            norm = np.linalg.norm(hidden_flat)
+            return float(norm) if np.isfinite(norm) else 0.0
         
         # 投影到主成分
         projections = np.dot(hidden_flat, self.svd_components.T)
+        
+        # Handle NaN in projections
+        if np.any(~np.isfinite(projections)):
+            projections = np.nan_to_num(projections, nan=0.0, posinf=1.0, neginf=-1.0)
         
         # 计算分数
         if self.weighted_svd and self.singular_values is not None:
             # 按奇异值加权
             weights = self.singular_values[:len(projections)]
-            weights = weights / weights.sum()
+            weight_sum = weights.sum()
+            if weight_sum > 0:
+                weights = weights / weight_sum
+            else:
+                weights = np.ones_like(weights) / len(weights)
             score = np.sum(np.abs(projections) * weights)
         else:
             score = np.mean(np.abs(projections))
         
-        return float(score)
+        return float(score) if np.isfinite(score) else 0.0
     
     def fit(self, unlabeled_data: List[Dict[str, Any]]):
         """
@@ -200,9 +217,17 @@ class HaloScopeDetector:
         
         all_hidden = np.array(all_hidden)
         
+        # Handle NaN/Inf in all_hidden
+        if np.any(~np.isfinite(all_hidden)):
+            logger.warning("Found NaN/Inf in hidden states, replacing with zeros")
+            all_hidden = np.nan_to_num(all_hidden, nan=0.0, posinf=1.0, neginf=-1.0)
+        
         # 计算统计量
         self.mean_hidden = all_hidden.mean(axis=0)
         self.std_hidden = all_hidden.std(axis=0)
+        
+        # Avoid division by zero in std
+        self.std_hidden = np.where(self.std_hidden < 1e-8, 1.0, self.std_hidden)
         
         # SVD
         centered = all_hidden - self.mean_hidden
@@ -210,12 +235,23 @@ class HaloScopeDetector:
             centered = centered / (self.std_hidden + 1e-8)
         
         try:
-            U, S, Vt = np.linalg.svd(centered, full_matrices=False)
-            self.svd_components = Vt[:self.n_components]
-            self.singular_values = S[:self.n_components]
-            logger.info(f"SVD completed, top singular values: {S[:5]}")
+            # Use truncated SVD for better numerical stability
+            from sklearn.decomposition import TruncatedSVD
+            n_components = min(self.n_components, centered.shape[0] - 1, centered.shape[1])
+            if n_components > 0:
+                svd = TruncatedSVD(n_components=n_components, random_state=42)
+                svd.fit(centered)
+                self.svd_components = svd.components_
+                self.singular_values = svd.singular_values_
+                logger.info(f"SVD completed, top singular values: {self.singular_values[:5]}")
+            else:
+                logger.warning("Not enough samples for SVD, using fallback")
+                self.svd_components = None
+                self.singular_values = None
         except Exception as e:
-            logger.warning(f"SVD failed: {e}")
+            logger.warning(f"SVD failed: {e}, using fallback mode")
+            self.svd_components = None
+            self.singular_values = None
         
         # 计算参考分数分布
         self.reference_scores = []
@@ -224,8 +260,14 @@ class HaloScopeDetector:
             self.reference_scores.append(score)
         
         self.reference_scores = np.array(self.reference_scores)
-        logger.info(f"Reference scores: mean={self.reference_scores.mean():.4f}, "
-                   f"std={self.reference_scores.std():.4f}")
+        
+        # Handle NaN in reference scores
+        valid_scores = self.reference_scores[np.isfinite(self.reference_scores)]
+        if len(valid_scores) > 0:
+            logger.info(f"Reference scores: mean={valid_scores.mean():.4f}, std={valid_scores.std():.4f}")
+        else:
+            logger.warning("All reference scores are NaN, using uniform distribution")
+            self.reference_scores = np.linspace(0, 1, len(all_hidden))
     
     def predict_score(self, data: Dict[str, Any]) -> float:
         """
@@ -443,6 +485,10 @@ class HaloScopeMethod(BaseMethod):
         if isinstance(hidden_states, torch.Tensor):
             hidden_states = hidden_states.cpu().float().numpy()
         
+        # Handle NaN/Inf in hidden states
+        if np.any(~np.isfinite(hidden_states)):
+            hidden_states = np.nan_to_num(hidden_states, nan=0.0, posinf=1.0, neginf=-1.0)
+        
         # 获取处理后的隐藏状态
         data = {
             'hidden_states': hidden_states,
@@ -452,8 +498,12 @@ class HaloScopeMethod(BaseMethod):
         # 使用检测器的内部方法处理隐藏状态
         processed = self.detector._extract_hidden_states(data)
         
-        # 展平作为特征
-        return processed.flatten()
+        # 展平作为特征，确保无 NaN
+        result = processed.flatten()
+        if np.any(~np.isfinite(result)):
+            result = np.nan_to_num(result, nan=0.0, posinf=1.0, neginf=-1.0)
+        
+        return result
     
     def fit(self, features_list: List[ExtractedFeatures], labels: Optional[List[int]] = None, cv: bool = True) -> Dict[str, float]:
         """训练方法
