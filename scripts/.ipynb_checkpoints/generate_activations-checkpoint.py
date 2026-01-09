@@ -359,11 +359,16 @@ def extract_features_dict(features: ExtractedFeatures) -> Dict[str, Any]:
     }
     
     # 使用 getattr 安全访问可选属性
+    # 注意：ExtractedFeatures 使用 full_attention（单数），但存储使用 full_attentions（复数）
     for attr in ['attn_diags', 'laplacian_diags', 'attn_entropy', 
-                 'full_attentions', 'hidden_states', 'token_probs', 'token_entropy']:
+                 'hidden_states', 'token_probs', 'token_entropy']:
         value = getattr(features, attr, None)
         if value is not None:
             result[attr] = value
+    
+    # 单独处理 full_attention -> full_attentions 的映射
+    if features.full_attention is not None:
+        result['full_attentions'] = features.full_attention
     
     return result
 
