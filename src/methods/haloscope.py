@@ -47,10 +47,10 @@ class HaloScopeDetector:
         self.specific_layers = self.detection_cfg.get('specific_layers', [])
         
         # SVD配置
-        svd_cfg = self.detection_cfg.get('svd_config', {})
+        svd_cfg = config.get('svd_config', {})
         self.n_components = svd_cfg.get('n_components', 10)
         self.center = svd_cfg.get('center', True)
-        self.normalize = svd_cfg.get('normalize', True)
+        self.normalize = svd_cfg.get('normalize', False)
         
         # 分数配置
         self.score_aggregation = self.detection_cfg.get('score_aggregation', 'mean')
