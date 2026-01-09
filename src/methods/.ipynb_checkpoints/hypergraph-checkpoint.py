@@ -292,19 +292,26 @@ class HypergraphBuilder:
 
     def build_from_features(self, features: ExtractedFeatures) -> Optional[HypergraphData]:
         """Build hypergraph from ExtractedFeatures."""
-        if not hasattr(features, 'full_attention') or features.full_attention is None:
+        # Use lazy loading to get full_attention
+        attention = features.get_full_attention()
+        
+        if attention is None:
             return None
 
-        attention = features.full_attention
         response_idx = features.prompt_len
         token_labels = features.metadata.get("token_labels", None)
 
-        return self.build_from_attention(
+        result = self.build_from_attention(
             attention=attention,
             response_idx=response_idx,
             token_labels=token_labels,
             sample_id=features.sample_id,
         )
+        
+        # Release large feature after building hypergraph
+        features.release_large_features()
+        
+        return result
 
 
 # ==============================================================================
@@ -475,11 +482,19 @@ class HypergraphMethod(BaseMethod):
 
         自动检测是否有full_attention，决定使用GNN还是统计特征模式。
         """
-        # 检查是否有full_attention
-        has_full_attention = any(
-            hasattr(f, 'full_attention') and f.full_attention is not None
-            for f in features_list
-        )
+        # 检查是否有full_attention（支持懒加载模式）
+        def has_full_attention_available(f):
+            # Direct access
+            if hasattr(f, 'full_attention') and f.full_attention is not None:
+                return True
+            # Lazy loading path
+            if hasattr(f, 'metadata') and f.metadata:
+                feature_paths = f.metadata.get("_feature_paths", {})
+                if "full_attentions" in feature_paths:
+                    return True
+            return False
+        
+        has_full_attention = any(has_full_attention_available(f) for f in features_list)
 
         if has_full_attention: 
             logger.info("Full attention available, using GNN mode")

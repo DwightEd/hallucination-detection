@@ -666,34 +666,25 @@ def finalize_outputs(
     samples: List[Sample],
     cfg: DictConfig
 ):
-    """整合单个特征文件为合并格式。"""
-    logger.info("Consolidating features...")
+    """整合单个特征文件为合并格式。
+    
+    ⚠️ 内存优化版本：使用流式处理避免一次性加载所有特征导致OOM。
+    每次只处理一种特征类型，处理完后立即释放内存。
+    """
+    logger.info("Consolidating features (memory-optimized streaming mode)...")
     
     # 整合到特征目录
     features_dir = output_dir / "features"
     features_dir.mkdir(exist_ok=True)
     
-    consolidated = checkpoint_manager.consolidate_features()
-    
-    # 保存各类特征
-    feature_types = [
-        ("attn_diags", "attn_diags.pt"),
-        ("laplacian_diags", "laplacian_diags.pt"),
-        ("attn_entropy", "attn_entropy.pt"),
-        ("hidden_states", "hidden_states.pt"),
-        ("token_probs", "token_probs.pt"),
-        ("token_entropy", "token_entropy.pt"),
-        ("full_attentions", "full_attentions.pt"),
-    ]
-    
-    for key, filename in feature_types:
-        if consolidated.get(key):
-            torch.save(consolidated[key], features_dir / filename)
-            logger.info(f"Saved {key}: {len(consolidated[key])} samples")
+    # 使用流式处理：直接保存到目标目录，避免一次性加载所有数据
+    # 这会依次处理每种特征类型，处理完一种后释放内存再处理下一种
+    consolidated = checkpoint_manager.consolidate_features_streaming(features_dir)
     
     # 保存标签
     labels = torch.tensor([s.label if s.label is not None else -1 for s in samples])
     torch.save(labels, output_dir / "labels.pt")
+    logger.info(f"Saved labels: {len(labels)} samples")
     
     # 保存元数据
     progress = checkpoint_manager.get_progress()
@@ -702,6 +693,7 @@ def finalize_outputs(
         "n_processed": progress["processed"],
         "n_failed": progress["failed"],
         "sample_ids": consolidated.get("sample_ids", []),
+        "saved_features": consolidated.get("saved_features", []),
         "config": OmegaConf.to_container(cfg, resolve=True) if cfg else {},
     }
     
@@ -709,6 +701,17 @@ def finalize_outputs(
         json.dump(metadata, f, indent=2)
     
     logger.info(f"Consolidated features saved to {features_dir}")
+    
+    # 清理：删除单个特征文件（可选，节省空间）
+    # 注意：仅在确认合并成功后删除
+    cleanup_individual = cfg.get("cleanup_individual_features", False)
+    if cleanup_individual:
+        logger.info("Cleaning up individual feature files...")
+        for pt_file in (output_dir / "features_individual").glob("*.pt"):
+            try:
+                pt_file.unlink()
+            except Exception as e:
+                logger.warning(f"Failed to remove {pt_file}: {e}")
 
 
 if __name__ == "__main__":

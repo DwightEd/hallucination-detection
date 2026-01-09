@@ -472,13 +472,17 @@ class HSDMVAFMethod(BaseMethod):
     def extract_method_features(self, features: ExtractedFeatures) -> np.ndarray:
         """提取 MVA 特征并聚合为样本级别。"""
         
-        # 尝试使用完整注意力矩阵
-        if self.use_full_attention and features.full_attention is not None:
+        # 尝试使用完整注意力矩阵 (使用懒加载)
+        full_attention = features.get_full_attention() if self.use_full_attention else None
+        
+        if full_attention is not None:
             mva_features = compute_multi_view_attention_features(
-                attention=features.full_attention,
+                attention=full_attention,
                 prompt_len=features.prompt_len,
                 response_len=features.response_len,
             )
+            # Release large feature after use
+            features.release_large_features()
         elif features.attn_diags is not None:
             # 使用对角线近似
             mva_features = compute_mva_features_from_diags(

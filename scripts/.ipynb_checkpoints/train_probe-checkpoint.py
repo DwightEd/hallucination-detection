@@ -142,10 +142,14 @@ def load_features(features_dir: Path) -> tuple:
         "attn_diags": "attn_diags.pt",
         "laplacian_diags": "laplacian_diags.pt",
         "attn_entropy": "attn_entropy.pt",
-        "hidden_states": "hidden_states.pt",
         "token_probs": "token_probs.pt",
         "token_entropy": "token_entropy.pt",
-        "full_attentions": "full_attentions.pt",
+    }
+    
+    # Large features use index files (lazy loading)
+    large_feature_indexes = {
+        "hidden_states": "hidden_states_index.json",
+        "full_attentions": "full_attentions_index.json",
     }
     
     loaded_features = {}
@@ -155,16 +159,29 @@ def load_features(features_dir: Path) -> tuple:
             loaded_features[key] = torch.load(filepath, weights_only=False)
             logger.info(f"Loaded {key}")
     
+    # Load large feature indexes (for lazy loading individual samples)
+    feature_indexes = {}
+    for key, filename in large_feature_indexes.items():
+        filepath = features_subdir / filename
+        if filepath.exists():
+            with open(filepath) as f:
+                feature_indexes[key] = json.load(f)
+            logger.info(f"Loaded {key} index ({feature_indexes[key].get('sample_count', 0)} samples)")
+    
     # Load labels
     labels_path = features_dir / "labels.pt"
     labels = torch.load(labels_path, weights_only=False) if labels_path.exists() else torch.tensor([s.label or 0 for s in samples])
     
     # Build ExtractedFeatures list
+    # NOTE: Large features (hidden_states, full_attentions) are NOT loaded into memory!
+    # Instead, their file paths are stored in metadata for on-demand loading.
     sample_ids = metadata.get("sample_ids", [s.id for s in samples])
     features_list = []
     
     for i, sample_id in enumerate(sample_ids):
         sample_features = {}
+        
+        # Load regular features (already in memory, small per sample)
         for key, data in loaded_features.items():
             class_attr = "full_attention" if key == "full_attentions" else key
             if isinstance(data, dict) and sample_id in data:
@@ -172,7 +189,20 @@ def load_features(features_dir: Path) -> tuple:
             elif isinstance(data, list) and i < len(data):
                 sample_features[class_attr] = data[i]
         
+        # Prepare metadata for lazy loading of large features
+        feature_paths = {}
+        for feature_key, index_name in [("hidden_states", "hidden_states"), ("full_attentions", "full_attentions")]:
+            if feature_key in feature_indexes:
+                index_data = feature_indexes[feature_key]
+                if "index" in index_data and sample_id in index_data["index"]:
+                    feature_paths[feature_key] = index_data["index"][sample_id]
+        
         sample = samples[i] if i < len(samples) else None
+        
+        # Merge metadata with feature paths for lazy loading
+        sample_metadata = {"task_type_str": sample.task_type.value if sample and sample.task_type else "unknown"} if sample else {}
+        sample_metadata["_feature_paths"] = feature_paths  # Store paths for on-demand loading
+        
         features_list.append(ExtractedFeatures(
             sample_id=sample_id,
             prompt_len=sample.metadata.get("prompt_len", 0) if sample else 0,
@@ -181,10 +211,10 @@ def load_features(features_dir: Path) -> tuple:
             attn_diags=sample_features.get("attn_diags"),
             laplacian_diags=sample_features.get("laplacian_diags"),
             attn_entropy=sample_features.get("attn_entropy"),
-            hidden_states=sample_features.get("hidden_states"),
+            hidden_states=None,  # NOT loaded - use metadata["_feature_paths"]["hidden_states"]
             token_probs=sample_features.get("token_probs"),
             token_entropy=sample_features.get("token_entropy"),
-            full_attention=sample_features.get("full_attention"),
+            full_attention=None,  # NOT loaded - use metadata["_feature_paths"]["full_attentions"]
             metadata={"task_type_str": sample.task_type.value if sample and sample.task_type else "unknown"} if sample else {},
         ))
     

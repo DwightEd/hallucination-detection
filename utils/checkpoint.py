@@ -4,8 +4,10 @@ Provides:
 - Per-sample saving with immediate GPU memory release
 - Resume from last checkpoint on failure
 - Progress tracking and state persistence
+- Memory-efficient streaming consolidation (fixes OOM issue)
 """
 from __future__ import annotations
+import gc
 import json
 import logging
 import shutil
@@ -247,6 +249,9 @@ class CheckpointManager:
     def consolidate_features(self, output_path: Optional[Path] = None) -> Dict[str, Any]:
         """Consolidate all individual feature files into combined format.
         
+        ⚠️ MEMORY-OPTIMIZED VERSION: Processes one feature type at a time
+        to avoid OOM when handling large feature sets (e.g., full_attentions).
+        
         Args:
             output_path: Optional path to save consolidated features
             
@@ -255,58 +260,241 @@ class CheckpointManager:
         """
         feature_paths = self.get_all_feature_paths()
         
-        # 使用 dict 格式，以 sample_id 为键（与 train_probe.py 期望的格式一致）
-        # 注意：存储键使用 full_attentions（复数），与文件名一致
-        consolidated = {
-            "attn_diags": {},
-            "laplacian_diags": {},
-            "attn_entropy": {},
-            "hidden_states": {},
-            "token_probs": {},
-            "token_entropy": {},
-            "full_attentions": {},  # 使用复数形式，与存储文件名一致
-            "sample_ids": [],
-            "metadata": [],
-        }
+        if not feature_paths:
+            logger.warning("No feature files found to consolidate")
+            return {"sample_ids": [], "metadata": []}
         
-        # 支持的特征键列表（包括 full_attentions 复数形式）
+        logger.info(f"Consolidating {len(feature_paths)} feature files (memory-optimized mode)...")
+        
+        # Feature keys to process (including full_attentions plural form)
         feature_keys = [
             "attn_diags", "laplacian_diags", "attn_entropy",
             "hidden_states", "token_probs", "token_entropy", 
             "full_attentions"
         ]
         
+        # =========================================================================
+        # Pass 1: Collect sample_ids and metadata only (low memory footprint)
+        # =========================================================================
+        logger.info("  Pass 1/2: Collecting sample IDs and metadata...")
+        sample_ids = []
+        metadata_list = []
+        
         for path in feature_paths:
             try:
                 data = torch.load(path, map_location="cpu", weights_only=False)
-                features = data.get("features", {})
                 sample_id = data.get("sample_id", path.stem)
-                
-                consolidated["sample_ids"].append(sample_id)
-                consolidated["metadata"].append(data.get("metadata", {}))
-                
-                # 使用 sample_id 作为键存储特征
-                for key in feature_keys:
-                    if key in features and features[key] is not None:
-                        consolidated[key][sample_id] = features[key]
-                        
+                sample_ids.append(sample_id)
+                metadata_list.append(data.get("metadata", {}))
+                # Clear immediately
+                del data
             except Exception as e:
-                logger.warning(f"Failed to load {path}: {e}")
+                logger.warning(f"Failed to load metadata from {path}: {e}")
         
-        # 移除空的 dict（只保留非空的特征类型）
-        result = {}
-        for k, v in consolidated.items():
-            if k in ["sample_ids", "metadata"]:
-                if v:  # 保留非空列表
-                    result[k] = v
-            elif isinstance(v, dict) and v:  # 保留非空 dict
-                result[k] = v
+        gc.collect()
+        logger.info(f"  Found {len(sample_ids)} samples")
+        
+        # =========================================================================
+        # Pass 2: Process each feature type SEPARATELY to avoid OOM
+        # =========================================================================
+        logger.info("  Pass 2/2: Processing features by type (streaming)...")
+        
+        result = {
+            "sample_ids": sample_ids,
+            "metadata": metadata_list,
+        }
+        
+        for feature_key in feature_keys:
+            feature_dict = {}
+            found_count = 0
+            
+            for path in feature_paths:
+                try:
+                    data = torch.load(path, map_location="cpu", weights_only=False)
+                    features = data.get("features", {})
+                    sample_id = data.get("sample_id", path.stem)
+                    
+                    if feature_key in features and features[feature_key] is not None:
+                        feature_dict[sample_id] = features[feature_key]
+                        found_count += 1
+                    
+                    # Clear loaded data immediately to free memory
+                    del data
+                    del features
+                    
+                except Exception:
+                    pass  # Skip individual file errors silently
+            
+            # Only add non-empty feature dicts to result
+            if feature_dict:
+                result[feature_key] = feature_dict
+                logger.info(f"    {feature_key}: {found_count} samples")
+            
+            # Clear and force garbage collection before next feature type
+            del feature_dict
+            gc.collect()
+            
+            # Force CUDA cache clear if available
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        
+        logger.info(f"  Consolidation complete: {len(sample_ids)} samples total")
         
         if output_path:
             torch.save(result, output_path)
-            logger.info(f"Consolidated {len(feature_paths)} features to {output_path}")
+            logger.info(f"Saved consolidated features to {output_path}")
         
         return result
+    
+    def consolidate_features_streaming(
+        self, 
+        output_dir: Path,
+        batch_size_for_large_features: int = 50,
+    ) -> Dict[str, Any]:
+        """Stream-consolidate features directly to disk, one type at a time.
+        
+        ⚠️ MEMORY-OPTIMIZED: 
+        - Regular features: merge all samples into one file per feature type
+        - Large features (full_attentions): keep as individual files or batch
+        
+        Args:
+            output_dir: Directory to save consolidated feature files
+            batch_size_for_large_features: Batch size for large features like full_attentions
+            
+        Returns:
+            Dict with sample_ids, metadata, and info about saved files
+        """
+        feature_paths = self.get_all_feature_paths()
+        
+        if not feature_paths:
+            logger.warning("No feature files found to consolidate")
+            return {"sample_ids": [], "metadata": [], "saved_features": []}
+        
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        logger.info(f"Streaming consolidation of {len(feature_paths)} files to {output_dir}...")
+        
+        # Regular features that can be merged (small per sample)
+        # These are typically O(n_layers * n_heads * seq_len) or smaller
+        regular_features = [
+            "attn_diags", "laplacian_diags", "attn_entropy",
+            "token_probs", "token_entropy", 
+        ]
+        
+        # Large features that should NOT be merged (huge per sample)
+        # - hidden_states: O(n_layers * seq_len * hidden_dim) ≈ 256MB per sample for 7B model
+        # - full_attentions: O(n_layers * n_heads * seq_len^2) ≈ GBs per sample
+        # Merging 800+ samples = guaranteed OOM!
+        large_features = ["hidden_states", "full_attentions"]
+        
+        # First pass: collect sample_ids and metadata
+        sample_ids = []
+        metadata_list = []
+        
+        logger.info("  Pass 1: Collecting sample IDs and metadata...")
+        for path in feature_paths:
+            try:
+                data = torch.load(path, map_location="cpu", weights_only=False)
+                sample_ids.append(data.get("sample_id", path.stem))
+                metadata_list.append(data.get("metadata", {}))
+                del data
+            except Exception as e:
+                logger.warning(f"Failed to read {path}: {e}")
+        
+        gc.collect()
+        logger.info(f"  Found {len(sample_ids)} samples")
+        
+        saved_features = []
+        
+        # =================================================================
+        # Process REGULAR features (can be merged into single file)
+        # =================================================================
+        logger.info("  Pass 2: Processing regular features...")
+        for feature_key in regular_features:
+            feature_dict = {}
+            found_count = 0
+            
+            for path in feature_paths:
+                try:
+                    data = torch.load(path, map_location="cpu", weights_only=False)
+                    features = data.get("features", {})
+                    sample_id = data.get("sample_id", path.stem)
+                    
+                    if feature_key in features and features[feature_key] is not None:
+                        feature_dict[sample_id] = features[feature_key]
+                        found_count += 1
+                    
+                    del data
+                    del features
+                except Exception:
+                    pass
+            
+            # Save this feature type directly to disk
+            if feature_dict:
+                output_file = output_dir / f"{feature_key}.pt"
+                torch.save(feature_dict, output_file)
+                saved_features.append(feature_key)
+                logger.info(f"    {feature_key}: {found_count} samples")
+            
+            # Clear memory before next feature type
+            del feature_dict
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        
+        # =================================================================
+        # Process LARGE features (keep as index pointing to individual files)
+        # =================================================================
+        logger.info("  Pass 3: Processing large features (index only)...")
+        for feature_key in large_features:
+            # Check if any sample has this feature
+            has_feature = False
+            feature_index = {}  # Maps sample_id -> original file path
+            
+            for path in feature_paths:
+                try:
+                    # Only load metadata to check if feature exists
+                    data = torch.load(path, map_location="cpu", weights_only=False)
+                    features = data.get("features", {})
+                    sample_id = data.get("sample_id", path.stem)
+                    
+                    if feature_key in features and features[feature_key] is not None:
+                        has_feature = True
+                        # Store the path to the original file (for lazy loading)
+                        feature_index[sample_id] = str(path)
+                    
+                    del data
+                    del features
+                except Exception:
+                    pass
+            
+            if has_feature:
+                # Save an INDEX file instead of merged data
+                # This allows downstream code to load individual samples on demand
+                index_file = output_dir / f"{feature_key}_index.json"
+                import json
+                with open(index_file, 'w') as f:
+                    json.dump({
+                        "type": "index",
+                        "feature_key": feature_key,
+                        "sample_count": len(feature_index),
+                        "index": feature_index,
+                        "note": "Large feature - load individual files on demand"
+                    }, f, indent=2)
+                
+                saved_features.append(f"{feature_key}_index")
+                logger.info(f"    {feature_key}: {len(feature_index)} samples (INDEX ONLY - files kept separate)")
+            
+            gc.collect()
+        
+        logger.info(f"  Consolidation complete")
+        
+        return {
+            "sample_ids": sample_ids,
+            "metadata": metadata_list,
+            "saved_features": saved_features,
+        }
     
     def get_progress(self) -> Dict[str, Any]:
         """Get current progress info."""

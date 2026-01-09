@@ -476,10 +476,12 @@ class HaloScopeMethod(BaseMethod):
         Returns:
             特征向量 [feature_dim]
         """
-        hidden_states = features.hidden_states
+        # Use lazy loading to get hidden_states (may load from file on demand)
+        hidden_states = features.get_hidden_states()
         
         if hidden_states is None:
-            raise ValueError(f"Sample {features.sample_id} has no hidden_states")
+            raise ValueError(f"Sample {features.sample_id} has no hidden_states. "
+                           "Make sure hidden_states is enabled in feature extraction.")
         
         # 转换为numpy
         if isinstance(hidden_states, torch.Tensor):
@@ -502,6 +504,9 @@ class HaloScopeMethod(BaseMethod):
         result = processed.flatten()
         if np.any(~np.isfinite(result)):
             result = np.nan_to_num(result, nan=0.0, posinf=1.0, neginf=-1.0)
+        
+        # Release large feature from memory after processing
+        features.release_large_features()
         
         return result
     
