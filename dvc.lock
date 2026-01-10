@@ -5,9 +5,9 @@ stages:
     deps:
     - path: config/dataset/
       hash: md5
-      md5: 31ea49280dc4e2e92679d62a5a8c1fdb.dir
-      size: 8010
-      nfiles: 4
+      md5: 2cc6925f727beb39dc3bfab875e77afa.dir
+      size: 3986
+      nfiles: 6
     - path: scripts/split_dataset.py
       hash: md5
       md5: 5dfcdc09ac10b6ef6a354b3e407e5013
@@ -29,16 +29,17 @@ stages:
       nfiles: 4
   generate_activations@dataset0-QA-model0:
     cmd: CUDA_VISIBLE_DEVICES=0,1 python scripts/generate_activations.py 
-      dataset.name=ragtruth dataset.task_type=QA model=mistral_7b 
-      model.short_name=Mistral-7B-Instruct-v0.3 features.mode=teacher_forcing 
-      seed=42 methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf] 
+      dataset.name=ragtruth dataset.task_type=QA dataset.split_name=train 
+      model=mistral_7b model.short_name=Mistral-7B-Instruct-v0.3 
+      features.mode=teacher_forcing seed=42 
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf] 
       allow_full_attention=true
     deps:
     - path: config/
       hash: md5
-      md5: d2ce2ff7caf5863e183b5224874f437e.dir
-      size: 54904
-      nfiles: 35
+      md5: a483a6aa452547134aeecbd68e7e5a53.dir
+      size: 65126
+      nfiles: 45
     - path: outputs/splits/
       hash: md5
       md5: a0438b9ac8315bae8284af33436f5ce1.dir
@@ -46,18 +47,18 @@ stages:
       nfiles: 4
     - path: scripts/generate_activations.py
       hash: md5
-      md5: 707ac7c40c8b3564923b29451f663244
-      size: 24285
+      md5: eb2c08ae4ee72f6090513995f4fd683a
+      size: 12775
     - path: src/
       hash: md5
-      md5: 1f1f952d22b18bc0f87cc8ac3a390d24.dir
-      size: 1116786
-      nfiles: 100
+      md5: c810b429c3cec147ab4cefbfd30c8cf0.dir
+      size: 1240779
+      nfiles: 108
     - path: utils/
       hash: md5
-      md5: 1a5f45d3a9a1aecad82d0b16f3e358a1.dir
-      size: 112881
-      nfiles: 9
+      md5: 9ef1a5d44e9518dd0d8b7da1fee4023c.dir
+      size: 169578
+      nfiles: 11
     params:
       params.yaml:
         allow_full_attention: true
@@ -71,21 +72,22 @@ stages:
     outs:
     - path: outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/
       hash: md5
-      md5: 75723db1b4eedeecc66b7489e64885ea.dir
-      size: 6021834545
-      nfiles: 812
+      md5: e259d98392cde0bfc173eb99d4339a29.dir
+      size: 574128177193
+      nfiles: 818
   generate_activations@dataset0-Summary-model0:
     cmd: CUDA_VISIBLE_DEVICES=0,1 python scripts/generate_activations.py 
-      dataset.name=ragtruth dataset.task_type=Summary model=mistral_7b 
-      model.short_name=Mistral-7B-Instruct-v0.3 features.mode=teacher_forcing 
-      seed=42 methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf] 
+      dataset.name=ragtruth dataset.task_type=Summary dataset.split_name=train 
+      model=mistral_7b model.short_name=Mistral-7B-Instruct-v0.3 
+      features.mode=teacher_forcing seed=42 
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf] 
       allow_full_attention=true
     deps:
     - path: config/
       hash: md5
-      md5: d2ce2ff7caf5863e183b5224874f437e.dir
-      size: 54904
-      nfiles: 35
+      md5: a483a6aa452547134aeecbd68e7e5a53.dir
+      size: 65126
+      nfiles: 45
     - path: outputs/splits/
       hash: md5
       md5: a0438b9ac8315bae8284af33436f5ce1.dir
@@ -93,18 +95,18 @@ stages:
       nfiles: 4
     - path: scripts/generate_activations.py
       hash: md5
-      md5: 707ac7c40c8b3564923b29451f663244
-      size: 24285
+      md5: eb2c08ae4ee72f6090513995f4fd683a
+      size: 12775
     - path: src/
       hash: md5
-      md5: 1f1f952d22b18bc0f87cc8ac3a390d24.dir
-      size: 1116786
-      nfiles: 100
+      md5: c810b429c3cec147ab4cefbfd30c8cf0.dir
+      size: 1240779
+      nfiles: 108
     - path: utils/
       hash: md5
-      md5: 1a5f45d3a9a1aecad82d0b16f3e358a1.dir
-      size: 112881
-      nfiles: 9
+      md5: 9ef1a5d44e9518dd0d8b7da1fee4023c.dir
+      size: 169578
+      nfiles: 11
     params:
       params.yaml:
         allow_full_attention: true
@@ -118,21 +120,22 @@ stages:
     outs:
     - path: outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Summary/
       hash: md5
-      md5: 5b4fb51fa5fa82f08148358bf0193c48.dir
-      size: 9661287502
-      nfiles: 795
+      md5: 82e5849293d07d8a9c230c31ef463347.dir
+      size: 1830927492188
+      nfiles: 798
   generate_activations@dataset0-Data2txt-model0:
     cmd: CUDA_VISIBLE_DEVICES=0,1 python scripts/generate_activations.py 
-      dataset.name=ragtruth dataset.task_type=Data2txt model=mistral_7b 
-      model.short_name=Mistral-7B-Instruct-v0.3 features.mode=teacher_forcing 
-      seed=42 methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf] 
+      dataset.name=ragtruth dataset.task_type=Data2txt dataset.split_name=train 
+      model=mistral_7b model.short_name=Mistral-7B-Instruct-v0.3 
+      features.mode=teacher_forcing seed=42 
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf] 
       allow_full_attention=true
     deps:
     - path: config/
       hash: md5
-      md5: d2ce2ff7caf5863e183b5224874f437e.dir
-      size: 54904
-      nfiles: 35
+      md5: a483a6aa452547134aeecbd68e7e5a53.dir
+      size: 65126
+      nfiles: 45
     - path: outputs/splits/
       hash: md5
       md5: a0438b9ac8315bae8284af33436f5ce1.dir
@@ -140,18 +143,18 @@ stages:
       nfiles: 4
     - path: scripts/generate_activations.py
       hash: md5
-      md5: 707ac7c40c8b3564923b29451f663244
-      size: 24285
+      md5: eb2c08ae4ee72f6090513995f4fd683a
+      size: 12775
     - path: src/
       hash: md5
-      md5: 1f1f952d22b18bc0f87cc8ac3a390d24.dir
-      size: 1116786
-      nfiles: 100
+      md5: c810b429c3cec147ab4cefbfd30c8cf0.dir
+      size: 1240779
+      nfiles: 108
     - path: utils/
       hash: md5
-      md5: 1a5f45d3a9a1aecad82d0b16f3e358a1.dir
-      size: 112881
-      nfiles: 9
+      md5: 9ef1a5d44e9518dd0d8b7da1fee4023c.dir
+      size: 169578
+      nfiles: 11
     params:
       params.yaml:
         allow_full_attention: true
@@ -165,76 +168,6 @@ stages:
     outs:
     - path: outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/
       hash: md5
-      md5: 20fb0d1c1ff17bcaca92714a937cda7a.dir
-      size: 11974054544
-      nfiles: 891
-  train_probe@dataset0-QA-model0-lapeigvals:
-    cmd: python scripts/train_probe.py dataset.name=ragtruth 
-      dataset.task_type=QA model=mistral_7b 
-      model.short_name=Mistral-7B-Instruct-v0.3 method=lapeigvals seed=42
-    deps:
-    - path: outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/
-      hash: md5
-      md5: 75723db1b4eedeecc66b7489e64885ea.dir
-      size: 6021834545
-      nfiles: 812
-    - path: outputs/splits/
-      hash: md5
-      md5: a0438b9ac8315bae8284af33436f5ce1.dir
-      size: 82455770
-      nfiles: 4
-    - path: scripts/train_probe.py
-      hash: md5
-      md5: 643fa02c5502d81d7bd91349706718f7
-      size: 11442
-    - path: src/
-      hash: md5
-      md5: 497458a83a37a3bbe0be73cc57cb5330.dir
-      size: 1117231
-      nfiles: 100
-    params:
-      params.yaml:
-        cv_folds: 5
-        seed: 42
-    outs:
-    - path: 
-        outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/lapeigvals/probe/
-      hash: md5
-      md5: 4b8ed3b4588e8d08801d0e6db79cfaca.dir
-      size: 498626
-      nfiles: 5
-  train_probe@dataset0-QA-model0-lookback_lens:
-    cmd: python scripts/train_probe.py dataset.name=ragtruth 
-      dataset.task_type=QA model=mistral_7b 
-      model.short_name=Mistral-7B-Instruct-v0.3 method=lookback_lens seed=42
-    deps:
-    - path: outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/
-      hash: md5
-      md5: 75723db1b4eedeecc66b7489e64885ea.dir
-      size: 6021834545
-      nfiles: 812
-    - path: outputs/splits/
-      hash: md5
-      md5: a0438b9ac8315bae8284af33436f5ce1.dir
-      size: 82455770
-      nfiles: 4
-    - path: scripts/train_probe.py
-      hash: md5
-      md5: 643fa02c5502d81d7bd91349706718f7
-      size: 11442
-    - path: src/
-      hash: md5
-      md5: 26d7b938c750287b946a9aa68eb9dd07.dir
-      size: 1136460
-      nfiles: 102
-    params:
-      params.yaml:
-        cv_folds: 5
-        seed: 42
-    outs:
-    - path: 
-        outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/lookback_lens/probe/
-      hash: md5
-      md5: 1da92f0cec0149636ab302833b450250.dir
-      size: 367463
-      nfiles: 5
+      md5: 8ba19d4492680f1a30ccdcd5295b8d30.dir
+      size: 2133432769614
+      nfiles: 893

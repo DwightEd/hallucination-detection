@@ -1,36 +1,12 @@
 #!/usr/bin/env python3
 """Generate activations (features) for hallucination detection.
 
-内存优化版本，支持：
-- 逐样本保存 (batch_size=1)
-- 每个样本后立即释放GPU内存
-- 异步保存 (ThreadPoolExecutor)
-- 检查点/恢复支持
-- 进度跟踪
-- 多GPU支持
-- 源模型过滤
-- 内存预估
-
-修改说明：
-- 从 outputs/splits/{dataset}/train.json 加载数据（而非原始数据集）
-- 这样可以确保只处理训练数据，且不依赖原始数据文件
-
 Usage:
-    # 基本使用
-    python scripts/generate_activations.py dataset.name=ragtruth model=mistral_7b
+    # 训练集
+    python scripts/generate_activations.py dataset.name=ragtruth dataset.split_name=train
     
-    # 按任务类型过滤（单个）
-    python scripts/generate_activations.py dataset.task_type=QA
-    
-    # 多方法（自动计算特征需求）
-    python scripts/generate_activations.py methods=[lapeigvals,entropy]
-    
-    # 启用完整注意力（hypergraph方法）
-    python scripts/generate_activations.py methods=[hypergraph] \
-        features=with_full_attentions allow_full_attention=true
-    
-    # 从检查点恢复
-    python scripts/generate_activations.py resume=true
+    # 测试集
+    python scripts/generate_activations.py dataset.name=ragtruth dataset.split_name=test
 """
 import sys
 import re
@@ -60,7 +36,6 @@ from src.utils import (
     is_multi_gpu_model, log_device_distribution,
 )
 
-# Import optimization utilities
 from utils.checkpoint import CheckpointManager, get_pending_samples
 from utils.async_saver import MemoryEfficientSaver
 from utils.feature_manager import (
@@ -70,20 +45,14 @@ from utils.feature_manager import (
 logger = logging.getLogger(__name__)
 
 
-# =============================================================================
-# 系统信息
-# =============================================================================
-
 def log_system_info():
     """记录系统和GPU信息。"""
     logger.info("=" * 70)
     logger.info("System Information")
     logger.info("=" * 70)
     
-    # PyTorch版本
     logger.info(f"PyTorch version: {torch.__version__}")
     
-    # GPU信息
     device_info = get_device_info()
     
     if device_info["cuda_available"]:
@@ -107,14 +76,12 @@ def log_system_info():
 
 def log_model_filter_info(cfg: DictConfig, samples: List[Sample]):
     """记录模型过滤信息。"""
-    # 收集所有源模型
     source_models = set()
     for sample in samples:
         src_model = sample.metadata.get("source_model")
         if src_model:
             source_models.add(src_model)
     
-    # 检查配置中的过滤器
     model_filter = cfg.dataset.get("models", None)
     
     logger.info("-" * 50)
@@ -128,7 +95,6 @@ def log_model_filter_info(cfg: DictConfig, samples: List[Sample]):
     
     logger.info(f"Models in loaded data: {sorted(source_models)}")
     
-    # 按模型统计样本数
     model_counts = {}
     for sample in samples:
         src_model = sample.metadata.get("source_model", "unknown")
@@ -140,85 +106,46 @@ def log_model_filter_info(cfg: DictConfig, samples: List[Sample]):
     logger.info("-" * 50)
 
 
-# =============================================================================
-# Task Type 解析函数（修复 DVC 路径问题）
-# =============================================================================
-
 def parse_task_types_to_list(task_types: Any) -> Optional[List[str]]:
-    """将各种格式的 task_types 解析为标准列表。
-    
-    支持的输入格式：
-    - None, 'null', 'None' -> None
-    - 'QA' -> ['QA']
-    - ['QA'] -> ['QA']
-    - ['QA', 'Summary'] -> ['QA', 'Summary']
-    - '[QA]' (字符串) -> ['QA']
-    - "['QA']" (字符串) -> ['QA']
-    - ListConfig(['QA']) -> ['QA']
-    
-    Returns:
-        List[str] 或 None
-    """
+    """将各种格式的 task_types 解析为标准列表。"""
     if task_types is None:
         return None
     
-    # 转换为字符串检查特殊值
     task_str = str(task_types).strip()
     if task_str.lower() in ('null', 'none', '[]', ''):
         return None
     
-    # 如果是 ListConfig 或 list，直接处理
     if isinstance(task_types, (list, ListConfig)):
         if len(task_types) == 0:
             return None
-        # 清理每个元素
         cleaned = [str(t).strip().strip("'\"") for t in task_types]
         return [c for c in cleaned if c]
     
-    # 如果是字符串形式的列表，如 "['QA']" 或 "[QA]"
     if task_str.startswith('[') and task_str.endswith(']'):
         inner = task_str[1:-1].strip()
         if not inner:
             return None
-        # 分割并清理
         parts = re.split(r'[,\s]+', inner)
         cleaned = [p.strip().strip("'\"") for p in parts if p.strip().strip("'\"")]
         return cleaned if cleaned else None
     
-    # 普通字符串，如 'QA'
     return [task_str.strip("'\"")]
 
 
 def get_task_types_from_config(cfg: DictConfig) -> Optional[List[str]]:
-    """从配置中获取 task_types 列表。
-    
-    优先级：
-    1. dataset.task_type (单个字符串，DVC matrix 使用)
-    2. dataset.task_types (列表)
-    
-    Returns:
-        List[str] 或 None
-    """
-    # 优先使用 task_type (单个) - DVC matrix 传入的格式
+    """从配置中获取 task_types 列表。"""
     task_type = cfg.dataset.get('task_type', None)
     if task_type is not None:
         parsed = parse_task_types_to_list(task_type)
         if parsed:
             return parsed
     
-    # 其次使用 task_types (列表)
     task_types = cfg.dataset.get('task_types', None)
     return parse_task_types_to_list(task_types)
 
 
 def get_task_suffix(cfg: DictConfig) -> str:
-    """获取用于目录名的 task 后缀。
-    
-    Examples:
-        None -> 'all'
-        ['QA'] -> 'QA'
-        ['QA', 'Summary'] -> 'QA_Summary'
-    """
+    """获取用于目录名的 task 后缀。"""
     task_types = get_task_types_from_config(cfg)
     
     if task_types is None or len(task_types) == 0:
@@ -227,10 +154,6 @@ def get_task_suffix(cfg: DictConfig) -> str:
     return "_".join(task_types)
 
 
-# =============================================================================
-# 辅助函数
-# =============================================================================
-
 def get_model_short_name(cfg: DictConfig) -> str:
     """获取模型短名称。"""
     if hasattr(cfg.model, 'short_name') and cfg.model.short_name:
@@ -238,26 +161,20 @@ def get_model_short_name(cfg: DictConfig) -> str:
     return cfg.model.name.split("/")[-1]
 
 
-def build_output_dir(cfg: DictConfig) -> Path:
-    """构建输出目录路径。
-    
-    新目录结构: {base}/{dataset}/{model}/seed_{seed}/{task_type}/
-    """
+def build_output_dir(cfg: DictConfig, split_name: str = "train") -> Path:
+    """构建输出目录路径。"""
     base_dir = Path(cfg.get("features_dir", "outputs/features"))
     dataset_name = cfg.dataset.name
     
-    # 使用修复后的函数获取 task 后缀
     task_suffix = get_task_suffix(cfg)
+    
+    if split_name == "test":
+        task_suffix = f"{task_suffix}_test"
     
     model_name = get_model_short_name(cfg)
     
-    # 新目录结构: {base}/{dataset}/{model}/seed_{seed}/{task_type}/
     return base_dir / dataset_name / model_name / f"seed_{cfg.seed}" / task_suffix
 
-
-# =============================================================================
-# 从 splits/train.json 加载数据
-# =============================================================================
 
 def load_samples_from_splits(
     dataset_name: str,
@@ -265,17 +182,7 @@ def load_samples_from_splits(
     model_filter: Optional[List[str]] = None,
     split: str = "train"
 ) -> List[Sample]:
-    """从 outputs/splits/{dataset}/train.json 加载样本。
-    
-    Args:
-        dataset_name: 数据集名称
-        task_types_filter: 任务类型过滤器
-        model_filter: 源模型过滤器
-        split: 加载哪个分割 ("train" 或 "test")
-        
-    Returns:
-        Sample 列表
-    """
+    """从 outputs/splits/{dataset}/train.json 或 test.json 加载样本。"""
     splits_dir = Path("outputs/splits") / dataset_name
     split_file = splits_dir / f"{split}.json"
     
@@ -292,13 +199,11 @@ def load_samples_from_splits(
     
     samples = []
     for item in data:
-        # 任务类型过滤
         item_task_type = item.get('task_type', '')
         if task_types_filter:
             if item_task_type not in task_types_filter:
                 continue
         
-        # 源模型过滤
         if model_filter:
             item_model = item.get('model', '')
             matched = False
@@ -309,7 +214,6 @@ def load_samples_from_splits(
             if not matched:
                 continue
         
-        # 转换 task_type
         task_type = None
         if item_task_type:
             try:
@@ -317,7 +221,6 @@ def load_samples_from_splits(
             except (ValueError, KeyError):
                 pass
         
-        # 转换 split
         split_type = None
         split_str = item.get('split', '')
         if split_str:
@@ -327,7 +230,6 @@ def load_samples_from_splits(
             elif split_str_lower in ['test', 'testing', 'val', 'validation']:
                 split_type = SplitType.TEST
         
-        # 创建 Sample
         metadata = item.get('metadata', {})
         sample = Sample(
             id=str(item.get('id', '')),
@@ -358,15 +260,12 @@ def extract_features_dict(features: ExtractedFeatures) -> Dict[str, Any]:
         "layers": features.layers,
     }
     
-    # 使用 getattr 安全访问可选属性
-    # 注意：ExtractedFeatures 使用 full_attention（单数），但存储使用 full_attentions（复数）
     for attr in ['attn_diags', 'laplacian_diags', 'attn_entropy', 
                  'hidden_states', 'token_probs', 'token_entropy']:
         value = getattr(features, attr, None)
         if value is not None:
             result[attr] = value
     
-    # 单独处理 full_attention -> full_attentions 的映射
     if features.full_attention is not None:
         result['full_attentions'] = features.full_attention
     
@@ -411,9 +310,20 @@ class ProgressTracker:
         )
 
 
-# =============================================================================
-# 主函数
-# =============================================================================
+def compute_stable_config_hash(cfg: DictConfig, split_name: str) -> Dict[str, Any]:
+    """计算稳定的配置哈希字典。"""
+    return {
+        "dataset_name": cfg.dataset.name,
+        "task_type": get_task_suffix(cfg),
+        "model_name": get_model_short_name(cfg),
+        "seed": cfg.seed,
+        "methods": sorted(list(cfg.get("methods", []))),
+        "allow_full_attention": cfg.get("allow_full_attention", False),
+        "features_mode": cfg.features.get("mode", "teacher_forcing"),
+        "max_length": cfg.features.get("max_length", 4096),
+        "split_name": split_name,
+    }
+
 
 @hydra.main(version_base=None, config_path="../config", config_name="config")
 def main(cfg: DictConfig) -> None:
@@ -421,31 +331,25 @@ def main(cfg: DictConfig) -> None:
     setup_logging(level=logging.INFO)
     set_seed(cfg.seed)
     
+    # 从 dataset 配置获取 split_name（默认为train）
+    split_name = cfg.dataset.get("split_name", "train")
+    
     logger.info("=" * 70)
-    logger.info("Generate Activations (Memory-Optimized)")
+    logger.info(f"Generate Activations (Memory-Optimized) - Split: {split_name}")
     logger.info("=" * 70)
     
-    # 记录系统信息
     log_system_info()
     
-    # 构建输出目录
-    output_dir = build_output_dir(cfg)
+    output_dir = build_output_dir(cfg, split_name)
     output_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Output directory: {output_dir}")
     
-    # 初始化检查点管理器
     checkpoint_manager = CheckpointManager(output_dir)
-    
-    # 初始化异步保存器
     saver = MemoryEfficientSaver(output_dir, max_workers=2)
     
-    # =========================================================================
-    # 从 splits/train.json 加载数据（修改点）
-    # =========================================================================
     dataset_name = cfg.dataset.name
     task_types_filter = get_task_types_from_config(cfg)
     
-    # 获取模型过滤器
     model_filter = cfg.dataset.get("models", None)
     if isinstance(model_filter, ListConfig):
         model_filter = list(model_filter)
@@ -453,32 +357,28 @@ def main(cfg: DictConfig) -> None:
     logger.info(f"Loading dataset: {dataset_name}")
     logger.info(f"Task types filter: {task_types_filter}")
     logger.info(f"Model filter: {model_filter}")
+    logger.info(f"Split: {split_name}")
     
     try:
         all_samples = load_samples_from_splits(
             dataset_name=dataset_name,
             task_types_filter=task_types_filter,
             model_filter=model_filter,
-            split="train"  # 只加载训练数据
+            split=split_name
         )
     except FileNotFoundError as e:
         logger.error(str(e))
         return
     
-    # 检查是否有样本
     if len(all_samples) == 0:
         logger.error("No samples loaded! Check your filters (dataset.models, dataset.task_types)")
         return
     
     logger.info(f"Loaded {len(all_samples)} samples")
     
-    # 记录模型过滤信息
     log_model_filter_info(cfg, all_samples)
     
-    # =========================================================================
-    # 初始化检查点
-    # =========================================================================
-    config_for_hash = OmegaConf.to_container(cfg, resolve=True)
+    config_for_hash = compute_stable_config_hash(cfg, split_name)
     resume = cfg.get("resume", True)
     is_resume = checkpoint_manager.initialize(
         total_samples=len(all_samples),
@@ -486,7 +386,6 @@ def main(cfg: DictConfig) -> None:
         force_restart=not resume
     )
     
-    # 获取待处理样本
     pending_samples = get_pending_samples(all_samples, checkpoint_manager)
     logger.info(
         f"Pending samples: {len(pending_samples)} "
@@ -498,29 +397,21 @@ def main(cfg: DictConfig) -> None:
         finalize_outputs(output_dir, checkpoint_manager, all_samples, cfg)
         return
     
-    # 保存配置
     OmegaConf.save(cfg, output_dir / "config.yaml")
     
-    # =========================================================================
-    # 确定特征需求
-    # =========================================================================
     methods = cfg.get("methods", ["lapeigvals"])
     if isinstance(methods, str):
         methods = [methods]
     
-    # 获取全局 allow_full_attention 设置
     allow_full_attention = cfg.get("allow_full_attention", False)
     
-    # 创建特征管理器
     feature_manager = create_feature_manager(
         methods=methods,
         allow_full_attention=allow_full_attention,
     )
     
-    # 显示特征需求
     logger.info(feature_manager.describe())
     
-    # 内存预估
     max_length = cfg.features.get("max_length", 4096)
     mem_estimate = feature_manager.estimate_memory_per_sample(
         seq_len=max_length,
@@ -536,9 +427,6 @@ def main(cfg: DictConfig) -> None:
             f"⚠️ High memory usage expected: {mem_estimate['total_gb']:.1f} GB/sample"
         )
     
-    # =========================================================================
-    # 加载模型
-    # =========================================================================
     model_config = ModelConfig(**OmegaConf.to_container(cfg.model, resolve=True))
     logger.info(f"Loading model: {model_config.name}")
     log_gpu_memory("Before model load")
@@ -546,21 +434,16 @@ def main(cfg: DictConfig) -> None:
     model = get_model(model_config)
     log_gpu_memory("After model load")
     
-    # 记录设备分布
     if is_multi_gpu_model(model.model):
         logger.info("Model loaded in multi-GPU mode")
         log_device_distribution(model.model, logger)
     else:
         logger.info(f"Model loaded on: {model.get_device()}")
     
-    # =========================================================================
-    # 创建特征提取器
-    # =========================================================================
     features_config_dict = OmegaConf.to_container(cfg.features, resolve=True)
     features_config_dict.update(feature_manager.to_features_config())
     features_config = FeaturesConfig(**features_config_dict)
     
-    # 使用安全创建函数
     extractor = create_extractor_from_requirements(
         model=model,
         config=features_config,
@@ -568,13 +451,9 @@ def main(cfg: DictConfig) -> None:
         allow_full_attention=allow_full_attention,
     )
     
-    # 显示内存预估
     extractor_mem = extractor.get_memory_estimate(seq_len=max_length)
     logger.info(f"Extractor memory estimate: {extractor_mem['total_mb']:.1f} MB/sample")
     
-    # =========================================================================
-    # 处理样本
-    # =========================================================================
     logger.info(f"Extracting features (batch_size=1, async_save=True)...")
     progress = ProgressTracker(len(pending_samples), "Extracting")
     
@@ -582,11 +461,9 @@ def main(cfg: DictConfig) -> None:
     
     for sample in pending_samples:
         try:
-            # 提取特征
             with MemoryTracker(f"Sample {sample.id}"):
                 features = extractor.extract(sample)
             
-            # 转换为字典并异步保存
             features_dict = extract_features_dict(features)
             metadata = {
                 "model_name": model_config.name,
@@ -596,13 +473,10 @@ def main(cfg: DictConfig) -> None:
             
             saver.save_and_release(sample.id, features_dict, metadata, force_gc=True)
             
-            # 保存答案信息
             answers.append(save_sample_answer(sample, features))
             
-            # 标记为已完成
             checkpoint_manager.mark_completed(sample.id)
             
-            # 清理特征对象
             del features
             
         except Exception as e:
@@ -611,28 +485,21 @@ def main(cfg: DictConfig) -> None:
         
         progress.update()
         
-        # 定期清理GPU内存
         if progress.current % 10 == 0:
             clear_gpu_memory()
             
-            # 多GPU同步
             if torch.cuda.device_count() > 1:
                 synchronize_all_gpus()
             
             log_gpu_memory(f"After {progress.current} samples")
     
-    # =========================================================================
-    # 完成保存
-    # =========================================================================
     logger.info("Waiting for async saves to complete...")
     save_stats = saver.finalize()
     logger.info(f"Save stats: {save_stats}")
     saver.shutdown()
     
-    # 保存答案
     answers_path = output_dir / "answers.json"
     
-    # 如果恢复，加载现有答案
     existing_answers = []
     if is_resume and answers_path.exists():
         try:
@@ -648,10 +515,8 @@ def main(cfg: DictConfig) -> None:
         json.dump(all_answers, f, ensure_ascii=False, indent=2)
     logger.info(f"Saved {len(all_answers)} answers to {answers_path}")
     
-    # 整合输出
     finalize_outputs(output_dir, checkpoint_manager, all_samples, cfg)
     
-    # 清理
     unload_all_models()
     clear_gpu_memory()
     
@@ -666,27 +531,18 @@ def finalize_outputs(
     samples: List[Sample],
     cfg: DictConfig
 ):
-    """整合单个特征文件为合并格式。
-    
-    ⚠️ 内存优化版本：使用流式处理避免一次性加载所有特征导致OOM。
-    每次只处理一种特征类型，处理完后立即释放内存。
-    """
+    """整合单个特征文件为合并格式。"""
     logger.info("Consolidating features (memory-optimized streaming mode)...")
     
-    # 整合到特征目录
     features_dir = output_dir / "features"
     features_dir.mkdir(exist_ok=True)
     
-    # 使用流式处理：直接保存到目标目录，避免一次性加载所有数据
-    # 这会依次处理每种特征类型，处理完一种后释放内存再处理下一种
     consolidated = checkpoint_manager.consolidate_features_streaming(features_dir)
     
-    # 保存标签
     labels = torch.tensor([s.label if s.label is not None else -1 for s in samples])
     torch.save(labels, output_dir / "labels.pt")
     logger.info(f"Saved labels: {len(labels)} samples")
     
-    # 保存元数据
     progress = checkpoint_manager.get_progress()
     metadata = {
         "n_samples": len(samples),
@@ -702,8 +558,6 @@ def finalize_outputs(
     
     logger.info(f"Consolidated features saved to {features_dir}")
     
-    # 清理：删除单个特征文件（可选，节省空间）
-    # 注意：仅在确认合并成功后删除
     cleanup_individual = cfg.get("cleanup_individual_features", False)
     if cleanup_individual:
         logger.info("Cleaning up individual feature files...")

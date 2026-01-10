@@ -3,15 +3,13 @@
 # =============================================================================
 # 目录结构: {base}/{dataset}/{model}/seed_{seed}/{task_type}/
 # 
-# 特征提取阶段会根据 params.yaml 中的 methods 列表计算特征需求并集，
-# 确保一次提取满足所有方法的需要。
-#
 # 流程顺序:
 #   1. split_dataset - 分割数据集
-#   2. generate_activations - 提取特征（依赖 split 输出）
-#   3. train_probe - 训练探测器
-#   4. evaluate - 评估
-#   5. aggregate - 汇总结果
+#   2. generate_activations - 提取训练集特征
+#   3. generate_activations_test - 提取测试集特征
+#   4. train_probe - 训练探测器
+#   5. evaluate - 评估
+#   6. aggregate - 汇总结果
 # =============================================================================
 
 vars:
@@ -20,9 +18,6 @@ vars:
 stages:
   # ===========================================================================
   # Stage 1: 数据分割
-  # ===========================================================================
-  # 先分割数据，保留所有原始信息（prompt, id, response等）
-  # 原始数据不会被修改或删除
   # ===========================================================================
   split_dataset:
     cmd: python scripts/split_dataset.py
@@ -38,13 +33,7 @@ stages:
           persist: true
 
   # ===========================================================================
-  # Stage 2: 特征提取 (按任务类型分别提取)
-  # ===========================================================================
-  # 从 outputs/splits/{dataset}/train.json 加载数据
-  # 特征提取会自动计算所有 methods 的特征需求并集
-  # 一次前向传播提取所有所需特征
-  # 
-  # 目录结构: {features_dir}/{dataset}/{model}/seed_{seed}/{task_type}/
+  # Stage 2a: 训练集特征提取
   # ===========================================================================
   generate_activations: 
     matrix: 
@@ -56,6 +45,7 @@ stages:
       python scripts/generate_activations.py
       dataset.name=${item.dataset.name}
       dataset.task_type=${item.task_type}
+      dataset.split_name=train
       model=${item.model.name}
       model.short_name=${item.model.short_name}
       features.mode=${features.mode}
@@ -74,14 +64,46 @@ stages:
       - methods
       - allow_full_attention
     outs:
-      # 目录结构: {dataset}/{model}/seed_{seed}/{task_type}/
       - outputs/features/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/: 
           persist: true
 
   # ===========================================================================
-  # Stage 3: 训练探测器
+  # Stage 2b: 测试集特征提取
   # ===========================================================================
-  # 目录结构: {models_dir}/{dataset}/{model}/seed_{seed}/{task_type}/{method}/probe/
+  generate_activations_test: 
+    matrix: 
+      dataset: ${datasets}
+      task_type: ${task_types}
+      model: ${models}
+    cmd: >-
+      CUDA_VISIBLE_DEVICES=${cuda_devices}
+      python scripts/generate_activations.py
+      dataset.name=${item.dataset.name}
+      dataset.task_type=${item.task_type}
+      dataset.split_name=test
+      model=${item.model.name}
+      model.short_name=${item.model.short_name}
+      features.mode=${features.mode}
+      seed=${seed}
+      methods=[${methods_str}]
+      allow_full_attention=${allow_full_attention}
+    deps:
+      - scripts/generate_activations.py
+      - src/
+      - config/
+      - utils/
+      - outputs/splits/
+    params:
+      - features.mode
+      - seed
+      - methods
+      - allow_full_attention
+    outs:
+      - outputs/features/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}_test/: 
+          persist: true
+
+  # ===========================================================================
+  # Stage 3: 训练探测器
   # ===========================================================================
   train_probe: 
     matrix: 
@@ -100,14 +122,12 @@ stages:
     deps:
       - scripts/train_probe.py
       - src/
-      # 目录结构依赖
       - outputs/features/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/
       - outputs/splits/
     params:
       - seed
       - cv_folds
     outs:
-      # 目录结构: {dataset}/{model}/seed_{seed}/{task_type}/{method}/probe/
       - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/probe/: 
           persist: true
 
@@ -130,14 +150,13 @@ stages:
       seed=${seed}
     deps: 
       - scripts/evaluate.py
-      # 目录结构依赖
       - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/probe/
       - outputs/features/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/
+      - outputs/features/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}_test/
       - outputs/splits/
     params:
       - seed
     metrics:
-      # 目录结构
       - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/eval_results.json:
           cache: false
     plots:

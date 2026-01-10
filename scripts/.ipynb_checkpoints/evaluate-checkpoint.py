@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""评估幻觉检测模型
-输出: Train (样本内) 和 Test (样本外) 的 AUROC, AUPR
-"""
+"""评估幻觉检测模型"""
 import sys
 import re
 import json
@@ -49,7 +47,7 @@ def parse_task_types(task_types: Any) -> Optional[List[str]]:
 
 
 def get_task_suffix(cfg: DictConfig) -> str:
-    """获取 task 后缀用于目录命名"""
+    """获取 task 后缀"""
     task_type = cfg.dataset.get('task_type', None)
     if task_type:
         parsed = parse_task_types(task_type)
@@ -66,14 +64,19 @@ def get_model_short_name(cfg: DictConfig) -> str:
     return cfg.model.name.split("/")[-1]
 
 
-def get_features_dir(cfg: DictConfig) -> Path:
-    """特征目录: {features_dir}/{dataset}/{model}/seed_{seed}/{task_type}/"""
+def get_features_dir(cfg: DictConfig, split: str = "train") -> Path:
+    """特征目录"""
     base_dir = Path(cfg.features_dir)
-    return base_dir / cfg.dataset.name / get_model_short_name(cfg) / f"seed_{cfg.seed}" / get_task_suffix(cfg)
+    task_suffix = get_task_suffix(cfg)
+    
+    if split == "test":
+        task_suffix = f"{task_suffix}_test"
+    
+    return base_dir / cfg.dataset.name / get_model_short_name(cfg) / f"seed_{cfg.seed}" / task_suffix
 
 
 def get_output_dir(cfg: DictConfig) -> Path:
-    """输出目录: {models_dir}/{dataset}/{model}/seed_{seed}/{task_type}/{method}/"""
+    """输出目录"""
     base_dir = Path(cfg.models_dir)
     return base_dir / cfg.dataset.name / get_model_short_name(cfg) / f"seed_{cfg.seed}" / get_task_suffix(cfg) / cfg.method.name
 
@@ -82,15 +85,18 @@ def get_model_path(cfg: DictConfig) -> Path:
     return get_output_dir(cfg) / "probe" / "model.pkl"
 
 
-def load_features(features_dir: Path) -> tuple:
+def load_features(features_dir: Path, split_name: str = "train") -> tuple:
     """加载特征文件"""
     metadata_path = features_dir / "metadata.json"
     answers_path = features_dir / "answers.json"
     
+    if not metadata_path.exists():
+        logger.warning(f"metadata.json not found in {features_dir}")
+        return [], []
+    
     with open(metadata_path) as f:
         metadata = json.load(f)
     
-    # 加载样本信息
     samples = []
     if answers_path.exists():
         with open(answers_path) as f:
@@ -121,7 +127,6 @@ def load_features(features_dir: Path) -> tuple:
                 }
             ))
     
-    # 加载特征
     features_subdir = features_dir / "features"
     if not features_subdir.exists():
         features_subdir = features_dir
@@ -130,10 +135,13 @@ def load_features(features_dir: Path) -> tuple:
         "attn_diags": "attn_diags.pt",
         "laplacian_diags": "laplacian_diags.pt",
         "attn_entropy": "attn_entropy.pt",
-        "hidden_states": "hidden_states.pt",
         "token_probs": "token_probs.pt",
         "token_entropy": "token_entropy.pt",
-        "full_attentions": "full_attentions.pt",
+    }
+    
+    large_feature_indexes = {
+        "hidden_states": "hidden_states_index.json",
+        "full_attentions": "full_attentions_index.json",
     }
     
     loaded_features = {}
@@ -142,11 +150,16 @@ def load_features(features_dir: Path) -> tuple:
         if filepath.exists():
             loaded_features[key] = torch.load(filepath, weights_only=False)
     
-    # 加载标签
+    feature_indexes = {}
+    for key, filename in large_feature_indexes.items():
+        filepath = features_subdir / filename
+        if filepath.exists():
+            with open(filepath) as f:
+                feature_indexes[key] = json.load(f)
+    
     labels_path = features_dir / "labels.pt"
     labels = torch.load(labels_path, weights_only=False) if labels_path.exists() else torch.tensor([s.label or 0 for s in samples])
     
-    # 构建 ExtractedFeatures 列表
     sample_ids = metadata.get("sample_ids", [s.id for s in samples])
     features_list = []
     
@@ -159,7 +172,22 @@ def load_features(features_dir: Path) -> tuple:
             elif isinstance(data, list) and i < len(data):
                 sample_features[class_attr] = data[i]
         
+        # 准备大特征的懒加载路径
+        feature_paths = {}
+        for feature_key in ["hidden_states", "full_attentions"]:
+            if feature_key in feature_indexes:
+                index_data = feature_indexes[feature_key]
+                if "index" in index_data and sample_id in index_data["index"]:
+                    feature_paths[feature_key] = index_data["index"][sample_id]
+        
         sample = samples[i] if i < len(samples) else None
+        
+        # 构建完整的 metadata，包含 _feature_paths
+        sample_metadata = {
+            "task_type_str": sample.task_type.value if sample and sample.task_type else "unknown",
+            "_feature_paths": feature_paths,  # 关键：包含懒加载路径
+        }
+        
         features_list.append(ExtractedFeatures(
             sample_id=sample_id,
             prompt_len=sample.metadata.get("prompt_len", 0) if sample else 0,
@@ -168,13 +196,14 @@ def load_features(features_dir: Path) -> tuple:
             attn_diags=sample_features.get("attn_diags"),
             laplacian_diags=sample_features.get("laplacian_diags"),
             attn_entropy=sample_features.get("attn_entropy"),
-            hidden_states=sample_features.get("hidden_states"),
+            hidden_states=None,
             token_probs=sample_features.get("token_probs"),
             token_entropy=sample_features.get("token_entropy"),
-            full_attention=sample_features.get("full_attention"),
-            metadata={"task_type_str": sample.task_type.value if sample and sample.task_type else "unknown"} if sample else {},
+            full_attention=None,
+            metadata=sample_metadata,  # 使用包含 _feature_paths 的完整 metadata
         ))
     
+    logger.info(f"Loaded {len(features_list)} {split_name} samples from {features_dir}")
     return features_list, samples
 
 
@@ -229,37 +258,55 @@ def main(cfg: DictConfig) -> None:
     logger.info("=" * 60)
 
     model_path = get_model_path(cfg)
-    features_dir = get_features_dir(cfg)
+    train_features_dir = get_features_dir(cfg, split="train")
+    test_features_dir = get_features_dir(cfg, split="test")
 
     if not model_path.exists():
         logger.error(f"Model not found: {model_path}")
         return
-    if not features_dir.exists():
-        logger.error(f"Features not found: {features_dir}")
+    if not train_features_dir.exists():
+        logger.error(f"Train features not found: {train_features_dir}")
         return
 
-    # 加载模型
     method_config = MethodConfig(**OmegaConf.to_container(cfg.method, resolve=True))
     method = create_method(method_config.name, config=method_config)
     method.load(model_path)
 
-    # 加载数据
-    features_list, samples = load_features(features_dir)
-    train_features, train_labels, test_features, test_labels = split_data(features_list, samples)
+    train_features, train_samples = load_features(train_features_dir, "train")
+    train_labels = [f.label for f in train_features]
+    
+    test_features, test_samples = [], []
+    test_labels = []
+    
+    if test_features_dir.exists():
+        test_features, test_samples = load_features(test_features_dir, "test")
+        test_labels = [f.label for f in test_features]
+        logger.info(f"Loaded test features from: {test_features_dir}")
+    else:
+        logger.info(f"Test features directory not found: {test_features_dir}")
+        logger.info("Falling back to split field in train features...")
+        
+        train_features_split, train_labels_split, test_features, test_labels = split_data(
+            train_features, train_samples
+        )
+        
+        if test_features:
+            logger.info(f"Found {len(test_features)} test samples from split field")
+            train_features = train_features_split
+            train_labels = train_labels_split
+        else:
+            logger.warning("No test data found! Only train metrics will be reported.")
 
     logger.info(f"Train: {len(train_features)}, Test: {len(test_features)}")
 
-    # 获取最优阈值
     threshold = 0.5
     if test_features and len(np.unique(test_labels)) > 1:
         test_preds = method.predict_batch(test_features)
         threshold, _ = find_optimal_threshold([p.score for p in test_preds], test_labels)
 
-    # 计算指标
     train_metrics, _ = compute_metrics(method, train_features, train_labels, threshold)
     test_metrics, test_scores = compute_metrics(method, test_features, test_labels, threshold)
 
-    # 输出结果
     logger.info("")
     logger.info(">>> Train (In-sample):")
     logger.info(f"    AUROC: {train_metrics.get('auroc', 0):.4f}")
@@ -272,7 +319,6 @@ def main(cfg: DictConfig) -> None:
     logger.info("")
     logger.info(f"Threshold: {threshold:.4f}")
 
-    # 保存结果
     output_dir = get_output_dir(cfg)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -291,7 +337,6 @@ def main(cfg: DictConfig) -> None:
     with open(output_dir / "eval_results.json", "w") as f:
         json.dump(results, f, indent=2)
 
-    # 保存 ROC 曲线数据
     if test_scores and len(np.unique(test_labels)) > 1:
         fpr, tpr, _ = roc_curve(test_labels, test_scores)
         roc_data = [{"fpr": float(f), "tpr": float(t)} for f, t in zip(fpr, tpr)]

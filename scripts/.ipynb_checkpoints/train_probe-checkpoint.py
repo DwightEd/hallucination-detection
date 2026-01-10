@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Train hallucination detection probe.
-
-Outputs:
-- Train AUROC, Train AUPR (in-sample metrics)
-- Performance metrics (training time, peak memory, model size)
-"""
+"""Train hallucination detection probe."""
 import sys
 import json
 import logging
@@ -29,10 +24,6 @@ from src.utils.metrics_tracker import MetricsTracker
 
 logger = logging.getLogger(__name__)
 
-
-# =============================================================================
-# Path Utilities
-# =============================================================================
 
 def parse_task_types(task_types) -> Optional[List[str]]:
     """Parse task_types config to list."""
@@ -75,23 +66,19 @@ def get_model_short_name(cfg: DictConfig) -> str:
 
 
 def get_features_dir(cfg: DictConfig) -> Path:
-    """Features directory: {features_dir}/{dataset}/{model}/seed_{seed}/{task_type}/"""
+    """Features directory."""
     base_dir = Path(cfg.features_dir)
     return base_dir / cfg.dataset.name / get_model_short_name(cfg) / f"seed_{cfg.seed}" / get_task_suffix(cfg)
 
 
 def get_output_dir(cfg: DictConfig) -> Path:
-    """Output directory: {models_dir}/{dataset}/{model}/seed_{seed}/{task_type}/{method}/probe/"""
+    """Output directory."""
     base_dir = Path(cfg.models_dir)
     return base_dir / cfg.dataset.name / get_model_short_name(cfg) / f"seed_{cfg.seed}" / get_task_suffix(cfg) / cfg.method.name / "probe"
 
 
-# =============================================================================
-# Data Loading
-# =============================================================================
-
 def load_features(features_dir: Path) -> tuple:
-    """Load feature files."""
+    """Load feature files with proper lazy loading support."""
     metadata_path = features_dir / "metadata.json"
     answers_path = features_dir / "answers.json"
     
@@ -101,7 +88,6 @@ def load_features(features_dir: Path) -> tuple:
     with open(metadata_path) as f:
         metadata = json.load(f)
     
-    # Load sample info
     samples = []
     if answers_path.exists():
         with open(answers_path) as f:
@@ -133,7 +119,6 @@ def load_features(features_dir: Path) -> tuple:
                 }
             ))
     
-    # Load features
     features_subdir = features_dir / "features"
     if not features_subdir.exists():
         features_subdir = features_dir
@@ -146,7 +131,6 @@ def load_features(features_dir: Path) -> tuple:
         "token_entropy": "token_entropy.pt",
     }
     
-    # Large features use index files (lazy loading)
     large_feature_indexes = {
         "hidden_states": "hidden_states_index.json",
         "full_attentions": "full_attentions_index.json",
@@ -159,7 +143,6 @@ def load_features(features_dir: Path) -> tuple:
             loaded_features[key] = torch.load(filepath, weights_only=False)
             logger.info(f"Loaded {key}")
     
-    # Load large feature indexes (for lazy loading individual samples)
     feature_indexes = {}
     for key, filename in large_feature_indexes.items():
         filepath = features_subdir / filename
@@ -168,20 +151,15 @@ def load_features(features_dir: Path) -> tuple:
                 feature_indexes[key] = json.load(f)
             logger.info(f"Loaded {key} index ({feature_indexes[key].get('sample_count', 0)} samples)")
     
-    # Load labels
     labels_path = features_dir / "labels.pt"
     labels = torch.load(labels_path, weights_only=False) if labels_path.exists() else torch.tensor([s.label or 0 for s in samples])
     
-    # Build ExtractedFeatures list
-    # NOTE: Large features (hidden_states, full_attentions) are NOT loaded into memory!
-    # Instead, their file paths are stored in metadata for on-demand loading.
     sample_ids = metadata.get("sample_ids", [s.id for s in samples])
     features_list = []
     
     for i, sample_id in enumerate(sample_ids):
         sample_features = {}
         
-        # Load regular features (already in memory, small per sample)
         for key, data in loaded_features.items():
             class_attr = "full_attention" if key == "full_attentions" else key
             if isinstance(data, dict) and sample_id in data:
@@ -189,9 +167,9 @@ def load_features(features_dir: Path) -> tuple:
             elif isinstance(data, list) and i < len(data):
                 sample_features[class_attr] = data[i]
         
-        # Prepare metadata for lazy loading of large features
+        # 准备大特征的懒加载路径 - 这是关键修复
         feature_paths = {}
-        for feature_key, index_name in [("hidden_states", "hidden_states"), ("full_attentions", "full_attentions")]:
+        for feature_key in ["hidden_states", "full_attentions"]:
             if feature_key in feature_indexes:
                 index_data = feature_indexes[feature_key]
                 if "index" in index_data and sample_id in index_data["index"]:
@@ -199,9 +177,11 @@ def load_features(features_dir: Path) -> tuple:
         
         sample = samples[i] if i < len(samples) else None
         
-        # Merge metadata with feature paths for lazy loading
-        sample_metadata = {"task_type_str": sample.task_type.value if sample and sample.task_type else "unknown"} if sample else {}
-        sample_metadata["_feature_paths"] = feature_paths  # Store paths for on-demand loading
+        # 构建完整的 metadata，包含 _feature_paths
+        sample_metadata = {
+            "task_type_str": sample.task_type.value if sample and sample.task_type else "unknown",
+            "_feature_paths": feature_paths,  # 关键：包含懒加载路径
+        }
         
         features_list.append(ExtractedFeatures(
             sample_id=sample_id,
@@ -211,11 +191,11 @@ def load_features(features_dir: Path) -> tuple:
             attn_diags=sample_features.get("attn_diags"),
             laplacian_diags=sample_features.get("laplacian_diags"),
             attn_entropy=sample_features.get("attn_entropy"),
-            hidden_states=None,  # NOT loaded - use metadata["_feature_paths"]["hidden_states"]
+            hidden_states=None,
             token_probs=sample_features.get("token_probs"),
             token_entropy=sample_features.get("token_entropy"),
-            full_attention=None,  # NOT loaded - use metadata["_feature_paths"]["full_attentions"]
-            metadata={"task_type_str": sample.task_type.value if sample and sample.task_type else "unknown"} if sample else {},
+            full_attention=None,
+            metadata=sample_metadata,  # 使用包含 _feature_paths 的完整 metadata
         ))
     
     return features_list, samples
@@ -259,10 +239,6 @@ def compute_metrics(method, features, labels, prefix=""):
     return metrics
 
 
-# =============================================================================
-# Main
-# =============================================================================
-
 @hydra.main(version_base=None, config_path="../config", config_name="config")
 def main(cfg: DictConfig) -> None:
     setup_logging(level=logging.INFO)
@@ -289,21 +265,17 @@ def main(cfg: DictConfig) -> None:
 
     logger.info(f"Train: {len(train_features)} ({sum(train_labels)} pos), Test: {len(test_features)}")
 
-    # Build method config and create method
     method_config = MethodConfig(**OmegaConf.to_container(cfg.method, resolve=True))
     method = create_method(method_config.name, config=method_config)
 
-    # Initialize metrics tracker
     tracker = MetricsTracker(method_name=cfg.method.name)
     tracker.set_sample_info(n_samples=len(train_features))
     
-    # Train (with metrics tracking)
     logger.info("Training...")
     tracker.start()
     fit_metrics = method.fit(train_features, train_labels, cv=False)
     tracker.stop()
     
-    # Compute training set metrics
     train_metrics = compute_metrics(method, train_features, train_labels, "train_")
     metrics = {**fit_metrics, **train_metrics}
 
@@ -312,18 +284,15 @@ def main(cfg: DictConfig) -> None:
     logger.info(f"Train AUPR:  {metrics.get('train_aupr', 0):.4f}")
     logger.info("=" * 40)
 
-    # Save model
     output_dir = get_output_dir(cfg)
     output_dir.mkdir(parents=True, exist_ok=True)
     
     model_path = output_dir / "model.pkl"
     method.save(model_path)
     
-    # Get model size and finalize performance metrics
     tracker.set_model_path(model_path)
     perf_metrics = tracker.get_metrics()
     
-    # Log performance metrics
     logger.info("")
     logger.info("Performance Metrics:")
     logger.info(f"  Training Time: {perf_metrics.training_time_seconds:.2f}s")
@@ -331,7 +300,6 @@ def main(cfg: DictConfig) -> None:
     logger.info(f"  Peak GPU Memory: {perf_metrics.peak_gpu_memory_mb:.1f} MB")
     logger.info(f"  Model Size: {perf_metrics.model_size_mb:.2f} MB")
     
-    # Combine all metrics
     metrics["performance"] = perf_metrics.to_dict()
     
     with open(output_dir / "train_metrics.json", "w") as f:
