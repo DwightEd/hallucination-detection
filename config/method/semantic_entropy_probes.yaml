@@ -1,0 +1,63 @@
+# =============================================================================
+# Semantic Entropy Probes (SEPs) - 语义熵探针幻觉检测方法
+# =============================================================================
+# 论文: "Semantic Entropy Probes: Robust and Cheap Hallucination Detection in LLMs"
+# 链接: https://arxiv.org/abs/2406.15927
+# 代码: https://github.com/OATML/semantic-entropy-probes
+#
+# 核心思想:
+# 1. Semantic Entropy (SE) 通过对多次生成结果进行语义聚类来估计不确定性
+# 2. SEPs 训练 linear probes 从单次生成的 hidden states 直接预测 SE
+# 3. 这样可以避免多次采样的计算开销，同时保持检测效果
+#
+# 与 Token Entropy 的区别:
+# - Token Entropy: 直接使用 token 预测概率的熵
+# - Semantic Entropy: 在语义空间中计算熵（需要 NLI 模型进行语义聚类）
+# - SEPs: 从 hidden states 预测 semantic entropy（本实现）
+#
+# Hidden State 位置选择 (来自原论文):
+# - TBG (Token-Before-Generating): 输入 prompt 最后一个 token 的 hidden state
+# - SLT (Second-Last Token): 生成回复倒数第二个 token 的 hidden state
+# =============================================================================
+
+# Semantic Entropy Probes (SEPs) - 语义熵探针
+# 论文: https://arxiv.org/abs/2406.15927
+# 特点: 从 hidden states 预测 semantic entropy，避免多次采样
+
+name: semantic_entropy_probes
+cls_path: src.methods.semantic_entropy_probes.SemanticEntropyProbesMethod
+classifier: logistic
+random_seed: ${seed}
+
+# -----------------------------------------------------------------------------
+# 训练级别: sample (原论文只支持样本级别检测)
+# SEPs 从特定位置的 hidden states 提取特征，是 sample 级别的方法
+# -----------------------------------------------------------------------------
+level: sample
+
+# 特征需求: 只需要 hidden_states
+required_features:
+  attention_diags: false
+  laplacian_diags: false
+  attention_entropy: false
+  full_attention: false
+  hidden_states: true
+  token_probs: false
+  token_entropy: false
+
+params:
+  # Hidden state 提取位置
+  # tbg: Token-Before-Generating (prompt最后token)
+  # slt: Second-Last Token (response倒数第二token)
+  positions:
+    - tbg
+    - slt
+  
+  use_layer_stats: true       # 是否使用层间统计特征
+  layer_selection: last_4     # 层选择: last_4, all
+  
+  classifier_params:
+    max_iter: 1000
+    C: 1.0
+    class_weight: balanced
+    solver: lbfgs

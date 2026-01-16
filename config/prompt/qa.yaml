@@ -1,0 +1,7 @@
+name: qa
+cls_path: src.prompts.base.QaPromptConfig
+
+content: "Question: {question}\nAnswer:"
+question_key: question
+context_key: null
+num_few_shot_examples: null

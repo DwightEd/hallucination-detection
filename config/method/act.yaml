@@ -1,0 +1,78 @@
+# =============================================================================
+# ACT - LLMs Know More Than They Show: On the Intrinsic Representation of LLM Hallucinations
+# =============================================================================
+# 论文: https://arxiv.org/abs/2410.02707
+# 代码: https://github.com/technion-cs-nlp/LLMsKnow
+#
+# 核心思想:
+# 1. LLM的隐藏状态包含关于答案正确性的信息
+# 2. 在exact_answer最后一个token位置提取隐藏状态
+# 3. 使用特定层（中间层效果最好）的隐藏状态
+# 4. 训练逻辑回归探针进行幻觉检测
+#
+# 关键发现:
+# - 中间层(~layer 13-15 for 32-layer model)最能区分幻觉
+# - exact_answer最后token位置最有信息量
+# - 隐藏状态可以泛化到不同任务类型
+#
+# 数据要求:
+# - 需要hidden_states
+# - 推荐在metadata中包含exact_answer字段以获得最佳效果
+# =============================================================================
+
+name: act
+cls_path: src.methods.act.ACTMethod
+
+classifier: logistic
+random_seed: ${seed}
+
+# -----------------------------------------------------------------------------
+# 训练级别: sample (原论文只支持样本级别检测)
+# ACT 从 exact_answer 位置提取隐藏状态，是 sample 级别的方法
+# -----------------------------------------------------------------------------
+level: sample
+
+# -----------------------------------------------------------------------------
+# 特征需求 - ACT主要需要隐藏状态
+# -----------------------------------------------------------------------------
+required_features:
+  attention_diags: false     # 不需要
+  laplacian_diags: false     # 不需要
+  attention_entropy: false   # 不需要
+  full_attention: false      # 不需要
+  hidden_states: true        # 必需！
+  hidden_states_layers: [24, 28, 32]  # 指定需要的层
+  token_probs: false         # 不需要
+  token_entropy: false       # 不需要
+
+# -----------------------------------------------------------------------------
+# 方法参数
+# -----------------------------------------------------------------------------
+params:
+  # 使用的层索引
+  # 论文推荐使用中间层，对于32层模型约为13-15层
+  # 这里使用24, 28, 32层作为示例（适用于更大的模型）
+  layers: [24, 28, 32]
+  
+  # 层选择策略
+  # - specific: 使用layers参数指定的层
+  # - last: 只使用最后一层
+  # - middle: 使用中间几层
+  # - last_quarter: 使用最后1/4的层
+  layer_selection: specific
+  
+  # Token位置选择策略
+  # - exact_answer_last: exact_answer的最后一个token (论文推荐)
+  # - response_last: response的最后一个token
+  # - response_mean: response所有token的平均
+  token_position: exact_answer_last
+  
+  # 探测位置 (受框架限制，主要使用hidden_states)
+  # 原论文支持: mlp, attention, residual
+  probe_location: hidden_states
+  
+  # 是否标准化特征
+  normalize: true
+  
+  # 是否中心化特征
+  center: true

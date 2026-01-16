@@ -1,0 +1,76 @@
+# =============================================================================
+# Hypergraph - Hypergraph Neural Network for Hallucination Detection
+# =============================================================================
+# 基于超图神经网络的幻觉检测方法
+#
+# 核心思想:
+# 1. 将注意力矩阵转换为超图结构
+# 2. 使用超图神经网络学习 token 表示
+# 3. 基于学习到的表示进行幻觉检测
+#
+# 注意: 需要完整的注意力矩阵来构建超图，显存要求较高
+# =============================================================================
+
+name: hypergraph
+cls_path: src.methods.hypergraph.HypergraphMethod
+
+classifier: logistic
+random_seed: ${seed}
+
+# -----------------------------------------------------------------------------
+# 训练级别
+# - sample: 样本级别，幻觉样本的所有 response tokens 标记为 1
+# - token:  Token级别，使用精确的 hallucination_labels（需要 RAGTruth 等带标注数据）
+# - both:   优先 token 级别，无标签时回退到 sample 级别
+# -----------------------------------------------------------------------------
+level: both
+
+# -----------------------------------------------------------------------------
+# 特征需求
+# 警告: full_attention 需要大量显存!
+# 对于 seq_len=2048, n_layers=32, n_heads=32:
+# 内存需求约 ~17GB
+# -----------------------------------------------------------------------------
+required_features:
+  attention_diags: true      # 辅助特征
+  laplacian_diags: false
+  attention_entropy: false
+  full_attention: true       # ⚠️ 核心：构建超图需要完整矩阵
+  hidden_states: false
+  token_probs: false
+  token_entropy: false
+
+# -----------------------------------------------------------------------------
+# 方法参数
+# -----------------------------------------------------------------------------
+params:
+  # 模型架构
+  hidden_dim: 128
+  gnn_layers: 2
+  dropout: 0.25
+  residual_mp: true
+
+  # 训练参数
+  lr: 3e-4
+  weight_decay: 0.001
+  epochs: 50
+  patience: 5
+
+  # 超图构建
+  attention_threshold: 0.05    # 注意力权重阈值
+  topk_per_row: 16             # 每行保留的 top-k 边
+  min_members_in_he: 2         # 超边最少成员数
+  include_center_token: true   # 是否包含中心 token
+
+  # 预测聚合
+  aggregation: max             # max, mean, any
+  score_threshold: 0.5         # 分类阈值
+
+# -----------------------------------------------------------------------------
+# 内存优化建议
+# -----------------------------------------------------------------------------
+# 如果显存不足，可以尝试:
+# 1. 减少 attention_layers 只使用最后几层: attention_layers: "last_4"
+# 2. 减少 batch_size
+# 3. 使用 gradient checkpointing
+# 4. 使用 float16 精度

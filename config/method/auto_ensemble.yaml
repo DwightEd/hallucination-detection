@@ -1,0 +1,20 @@
+# Auto Ensemble Method Configuration
+name: auto_ensemble
+
+classifier: logistic
+
+# -----------------------------------------------------------------------------
+# 训练级别: sample (集成方法目前只支持样本级别)
+# -----------------------------------------------------------------------------
+level: sample
+
+params:
+  mode: voting
+  methods:
+    - lapeigvals
+    - lookback_lens
+    - entropy
+    - perplexity
+  # weights auto-determined by CV performance
+
+random_seed: 42

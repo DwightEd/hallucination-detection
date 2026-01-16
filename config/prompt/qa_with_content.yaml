@@ -1,0 +1,12 @@
+name: qa_with_context
+cls_path: src.prompts.base.QaPromptConfig
+
+content: |
+  Context: {context}
+  
+  Question: {question}
+  Answer: 
+
+question_key: question
+context_key:  context
+num_few_shot_examples:  null

@@ -1,0 +1,49 @@
+# =============================================================================
+# Mistral-7B-Instruct Configuration
+# =============================================================================
+# 自动适配任意数量的 GPU：
+# - 单 GPU：自动使用全部显存
+# - 多 GPU：自动分布模型
+# =============================================================================
+
+name: /share/home/tm902089733300000/a903202310/lys/models/Mistral-7B-Instruct-v0.3
+
+# 短名称（用于输出目录名）
+short_name: Mistral-7B-Instruct-v0.3
+
+# 模型架构参数（会被自动更新）
+n_layers: 32
+n_heads: 32
+hidden_size: 4096
+
+# 加载参数
+attn_implementation: eager  # 必须为 eager 以提取注意力
+dtype: bfloat16
+trust_remote_code: false
+load_in_4bit: false
+load_in_8bit: false
+
+# =============================================================================
+# GPU 配置 - 自动适配
+# =============================================================================
+# 新版 loader.py 会自动检测 GPU 数量并适配：
+# - 0 个 GPU：使用 CPU
+# - 1 个 GPU：使用 auto device_map，可选限制显存
+# - 多个 GPU：根据 strategy 分布模型
+#
+# 配置选项：
+#   enabled: true/false - 是否启用自定义 GPU 配置
+#   strategy: auto/balanced/sequential/single - 分布策略
+#   memory_fraction: 0.0-1.0 - 使用每个 GPU 显存的比例（自动计算 max_memory）
+#   max_memory: {0: "70GB", 1: "70GB"} - 手动指定（会自动过滤不存在的 GPU）
+# =============================================================================
+multi_gpu:
+  enabled: true
+  strategy: auto
+  # 使用 90% 显存，自动适配任意 GPU 数量和显存大小
+  memory_fraction: 0.9
+  # 不再硬编码 max_memory，让系统自动计算
+  # 如果需要手动指定，可以取消注释：
+  # max_memory:
+  #   0: "70GB"  # H100 80GB 留 10GB 给系统
+  #   1: "70GB"  # 如果只有 1 个 GPU，会自动忽略这行

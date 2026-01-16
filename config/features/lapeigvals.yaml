@@ -1,0 +1,14 @@
+# Optimized for lapeigvals method (minimal memory)
+mode: teacher_forcing
+stored_features: attention_diags
+
+attention_enabled: true
+attention_layers: all
+attention_storage: diagonal
+store_full_attention: false
+
+hidden_states_enabled: false
+token_probs_enabled: false
+
+max_length: 4096
+batch_size: 16

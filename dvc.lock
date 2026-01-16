@@ -1,0 +1,343 @@
+schema: '2.0'
+stages:
+  split_dataset:
+    cmd: python scripts/split_dataset.py
+    deps:
+    - path: config/dataset/
+      hash: md5
+      md5: b42fdd8748fd0f72d5b528ace56f780e.dir
+      size: 8589
+      nfiles: 4
+    - path: scripts/split_dataset.py
+      hash: md5
+      md5: 5dfcdc09ac10b6ef6a354b3e407e5013
+      size: 13335
+    params:
+      params.yaml:
+        datasets:
+        - name: ragtruth
+        seed: 42
+        split:
+          test_ratio: 0.1
+          random_seed: 42
+          stratify: true
+    outs:
+    - path: outputs/splits/
+      hash: md5
+      md5: 0d8169838d4d836682e422f2a7093812.dir
+      size: 71823041
+      nfiles: 3
+  generate_activations@dataset0-QA-model0:
+    cmd: CUDA_VISIBLE_DEVICES=0,1 python scripts/generate_activations.py 
+      dataset.name=ragtruth dataset.task_type=QA dataset.split_name=train 
+      model=mistral_7b model.short_name=Mistral-7B-Instruct-v0.3 
+      features.mode=teacher_forcing features.max_length=8192 
+      features.batch_size=4 seed=42 
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes]
+      allow_full_attention=true
+    deps:
+    - path: config/
+      hash: md5
+      md5: 4735decc853bcf7990b3836166e8d109.dir
+      size: 57447
+      nfiles: 34
+    - path: outputs/splits/
+      hash: md5
+      md5: 0d8169838d4d836682e422f2a7093812.dir
+      size: 71823041
+      nfiles: 3
+    - path: scripts/generate_activations.py
+      hash: md5
+      md5: 1d70bd3307007eba1e83376840208a0a
+      size: 6848
+    - path: src/
+      hash: md5
+      md5: 76fdc0f2e6e288f9954421eda917c6ac.dir
+      size: 960202
+      nfiles: 86
+    - path: utils/
+      hash: md5
+      md5: acb48243347fff56762161696d57cec7.dir
+      size: 103367
+      nfiles: 8
+    params:
+      params.yaml:
+        features.batch_size: 4
+        features.max_length: 8192
+        features.mode: teacher_forcing
+        methods:
+        - lapeigvals
+        - lookback_lens
+        - haloscope
+        - hsdmvaf
+        - hypergraph
+        - semantic_entropy_probes
+        seed: 42
+    outs:
+    - path: outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/
+      hash: md5
+      md5: 07619bc0d4903b4fa336dce7fdcfbf4f.dir
+      size: 693086024152
+      nfiles: 815
+  generate_activations@dataset0-Summary-model0:
+    cmd: CUDA_VISIBLE_DEVICES=0,1 python scripts/generate_activations.py 
+      dataset.name=ragtruth dataset.task_type=Summary dataset.split_name=train 
+      model=mistral_7b model.short_name=Mistral-7B-Instruct-v0.3 
+      features.mode=teacher_forcing features.max_length=8192 
+      features.batch_size=4 seed=42 
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes]
+      allow_full_attention=true
+    deps:
+    - path: config/
+      hash: md5
+      md5: 4735decc853bcf7990b3836166e8d109.dir
+      size: 57447
+      nfiles: 34
+    - path: outputs/splits/
+      hash: md5
+      md5: 0d8169838d4d836682e422f2a7093812.dir
+      size: 71823041
+      nfiles: 3
+    - path: scripts/generate_activations.py
+      hash: md5
+      md5: 1d70bd3307007eba1e83376840208a0a
+      size: 6848
+    - path: src/
+      hash: md5
+      md5: c85cfdf2f760d6396f286bc0e6c52f03.dir
+      size: 960197
+      nfiles: 86
+    - path: utils/
+      hash: md5
+      md5: acb48243347fff56762161696d57cec7.dir
+      size: 103367
+      nfiles: 8
+    params:
+      params.yaml:
+        features.batch_size: 4
+        features.max_length: 8192
+        features.mode: teacher_forcing
+        methods:
+        - lapeigvals
+        - lookback_lens
+        - haloscope
+        - hsdmvaf
+        - hypergraph
+        - semantic_entropy_probes
+        seed: 42
+    outs:
+    - path: outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Summary/
+      hash: md5
+      md5: 0dab51f20714000f781429b4999b3179.dir
+      size: 2094351835454
+      nfiles: 802
+  generate_activations@dataset0-Data2txt-model0:
+    cmd: CUDA_VISIBLE_DEVICES=0,1 python scripts/generate_activations.py 
+      dataset.name=ragtruth dataset.task_type=Data2txt dataset.split_name=train 
+      model=mistral_7b model.short_name=Mistral-7B-Instruct-v0.3 
+      features.mode=teacher_forcing features.max_length=8192 
+      features.batch_size=4 seed=42 
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes]
+      allow_full_attention=true
+    deps:
+    - path: config/
+      hash: md5
+      md5: 4735decc853bcf7990b3836166e8d109.dir
+      size: 57447
+      nfiles: 34
+    - path: outputs/splits/
+      hash: md5
+      md5: 0d8169838d4d836682e422f2a7093812.dir
+      size: 71823041
+      nfiles: 3
+    - path: scripts/generate_activations.py
+      hash: md5
+      md5: 1d70bd3307007eba1e83376840208a0a
+      size: 6848
+    - path: src/
+      hash: md5
+      md5: c85cfdf2f760d6396f286bc0e6c52f03.dir
+      size: 960197
+      nfiles: 86
+    - path: utils/
+      hash: md5
+      md5: acb48243347fff56762161696d57cec7.dir
+      size: 103367
+      nfiles: 8
+    params:
+      params.yaml:
+        features.batch_size: 4
+        features.max_length: 8192
+        features.mode: teacher_forcing
+        methods:
+        - lapeigvals
+        - lookback_lens
+        - haloscope
+        - hsdmvaf
+        - hypergraph
+        - semantic_entropy_probes
+        seed: 42
+    outs:
+    - path: outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/
+      hash: md5
+      md5: 44dc2892cd10846e2c320e4b60bd60ab.dir
+      size: 2378405817796
+      nfiles: 894
+  generate_activations_test@dataset0-QA-model0:
+    cmd: CUDA_VISIBLE_DEVICES=0,1 python scripts/generate_activations.py 
+      dataset.name=ragtruth dataset.task_type=QA dataset.split_name=test 
+      model=mistral_7b model.short_name=Mistral-7B-Instruct-v0.3 
+      features.mode=teacher_forcing features.max_length=8192 
+      features.batch_size=4 seed=42 
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes]
+      allow_full_attention=true
+    deps:
+    - path: config/
+      hash: md5
+      md5: 4735decc853bcf7990b3836166e8d109.dir
+      size: 57447
+      nfiles: 34
+    - path: outputs/splits/
+      hash: md5
+      md5: 0d8169838d4d836682e422f2a7093812.dir
+      size: 71823041
+      nfiles: 3
+    - path: scripts/generate_activations.py
+      hash: md5
+      md5: 1d70bd3307007eba1e83376840208a0a
+      size: 6848
+    - path: src/
+      hash: md5
+      md5: c85cfdf2f760d6396f286bc0e6c52f03.dir
+      size: 960197
+      nfiles: 86
+    - path: utils/
+      hash: md5
+      md5: acb48243347fff56762161696d57cec7.dir
+      size: 103367
+      nfiles: 8
+    params:
+      params.yaml:
+        features.batch_size: 4
+        features.max_length: 8192
+        features.mode: teacher_forcing
+        methods:
+        - lapeigvals
+        - lookback_lens
+        - haloscope
+        - hsdmvaf
+        - hypergraph
+        - semantic_entropy_probes
+        seed: 42
+    outs:
+    - path: outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA_test/
+      hash: md5
+      md5: 256509bf4eae5a64c9186dbae3d7fde9.dir
+      size: 112676564577
+      nfiles: 148
+  generate_activations_test@dataset0-Summary-model0:
+    cmd: CUDA_VISIBLE_DEVICES=0,1 python scripts/generate_activations.py 
+      dataset.name=ragtruth dataset.task_type=Summary dataset.split_name=test 
+      model=mistral_7b model.short_name=Mistral-7B-Instruct-v0.3 
+      features.mode=teacher_forcing features.max_length=8192 
+      features.batch_size=4 seed=42 
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes]
+      allow_full_attention=true
+    deps:
+    - path: config/
+      hash: md5
+      md5: 4735decc853bcf7990b3836166e8d109.dir
+      size: 57447
+      nfiles: 34
+    - path: outputs/splits/
+      hash: md5
+      md5: 0d8169838d4d836682e422f2a7093812.dir
+      size: 71823041
+      nfiles: 3
+    - path: scripts/generate_activations.py
+      hash: md5
+      md5: 1d70bd3307007eba1e83376840208a0a
+      size: 6848
+    - path: src/
+      hash: md5
+      md5: c85cfdf2f760d6396f286bc0e6c52f03.dir
+      size: 960197
+      nfiles: 86
+    - path: utils/
+      hash: md5
+      md5: acb48243347fff56762161696d57cec7.dir
+      size: 103367
+      nfiles: 8
+    params:
+      params.yaml:
+        features.batch_size: 4
+        features.max_length: 8192
+        features.mode: teacher_forcing
+        methods:
+        - lapeigvals
+        - lookback_lens
+        - haloscope
+        - hsdmvaf
+        - hypergraph
+        - semantic_entropy_probes
+        seed: 42
+    outs:
+    - path: 
+        outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Summary_test/
+      hash: md5
+      md5: 192a85474446d017af06bfa69a1cfc7c.dir
+      size: 377911375427
+      nfiles: 162
+  generate_activations_test@dataset0-Data2txt-model0:
+    cmd: CUDA_VISIBLE_DEVICES=0,1 python scripts/generate_activations.py 
+      dataset.name=ragtruth dataset.task_type=Data2txt dataset.split_name=test 
+      model=mistral_7b model.short_name=Mistral-7B-Instruct-v0.3 
+      features.mode=teacher_forcing features.max_length=8192 
+      features.batch_size=4 seed=42 
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes]
+      allow_full_attention=true
+    deps:
+    - path: config/
+      hash: md5
+      md5: 4735decc853bcf7990b3836166e8d109.dir
+      size: 57447
+      nfiles: 34
+    - path: outputs/splits/
+      hash: md5
+      md5: 0d8169838d4d836682e422f2a7093812.dir
+      size: 71823041
+      nfiles: 3
+    - path: scripts/generate_activations.py
+      hash: md5
+      md5: 1d70bd3307007eba1e83376840208a0a
+      size: 6848
+    - path: src/
+      hash: md5
+      md5: c85cfdf2f760d6396f286bc0e6c52f03.dir
+      size: 960197
+      nfiles: 86
+    - path: utils/
+      hash: md5
+      md5: acb48243347fff56762161696d57cec7.dir
+      size: 103367
+      nfiles: 8
+    params:
+      params.yaml:
+        features.batch_size: 4
+        features.max_length: 8192
+        features.mode: teacher_forcing
+        methods:
+        - lapeigvals
+        - lookback_lens
+        - haloscope
+        - hsdmvaf
+        - hypergraph
+        - semantic_entropy_probes
+        seed: 42
+    outs:
+    - path: 
+        outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt_test/
+      hash: md5
+      md5: 94b23d52017593f1bc648bf2d4030328.dir
+      size: 409487520054
+      nfiles: 162

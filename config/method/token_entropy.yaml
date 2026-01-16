@@ -1,0 +1,33 @@
+# Token Entropy - 基于 token 级别熵的幻觉检测
+# 使用: token预测熵 + attention熵 + perplexity
+
+name: token_entropy
+cls_path: src.methods.token_entropy.TokenEntropyMethod
+classifier: logistic
+random_seed: ${seed}
+
+# -----------------------------------------------------------------------------
+# 训练级别: sample (当前实现只支持样本级别)
+# 注: 虽然有 token 级别的熵值，但当前实现聚合为样本级别特征
+# -----------------------------------------------------------------------------
+level: sample
+
+# 特征需求: token_probs, token_entropy, attention_entropy
+required_features:
+  attention_diags: false
+  laplacian_diags: false
+  attention_entropy: true
+  full_attention: false
+  hidden_states: false
+  token_probs: true
+  token_entropy: true
+
+params:
+  use_token_entropy: true
+  use_attention_entropy: true
+  use_perplexity: true
+  
+  classifier_params:
+    max_iter: 1000
+    C: 1.0
+    class_weight: balanced

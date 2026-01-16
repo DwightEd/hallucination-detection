@@ -1,0 +1,6 @@
+max_new_tokens:  256
+temperature:  1.0
+top_p: 1.0
+top_k: 0
+do_sample:  false
+repetition_penalty: 1.0

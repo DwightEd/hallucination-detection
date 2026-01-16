@@ -1,0 +1,17 @@
+name: meta-llama/Meta-Llama-3.1-8B-Instruct
+short_name:  llama3.1_8b
+
+n_layers: 32
+n_heads:  32
+hidden_size: 4096
+context_size:  131072
+
+dtype: bfloat16
+device_map: auto
+trust_remote_code: true
+attn_implementation: eager
+load_in_4bit: false
+load_in_8bit: false
+
+tokenizer_name: ${model.name}
+tokenizer_padding_side: left

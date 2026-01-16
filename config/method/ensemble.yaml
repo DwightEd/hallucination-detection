@@ -1,0 +1,16 @@
+name: ensemble
+cls_path: src.methods.ensemble.EnsembleMethod
+
+classifier: logistic
+random_seed: ${seed}
+
+# -----------------------------------------------------------------------------
+# 训练级别: sample (集成方法目前只支持样本级别)
+# -----------------------------------------------------------------------------
+level: sample
+
+params:
+  base_methods:
+    - lapeigvals
+    - entropy
+  ensemble_type: stacking  # voting, stacking, concat

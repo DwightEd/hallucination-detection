@@ -1,0 +1,54 @@
+# =============================================================================
+# HaloScope - 基于隐藏状态SVD的幻觉检测
+# =============================================================================
+# 论文: https://arxiv.org/abs/2409.17504 (NeurIPS'24)
+# GitHub: https://github.com/deeplearning-wisc/haloscope
+# =============================================================================
+
+name: haloscope
+cls_path: src.methods.haloscope.HaloScopeMethod
+
+# ============ 基础信息 ============
+level: sample
+classifier: mlp
+random_seed: 41                 # 论文明确指出对此敏感
+
+# =============================================================================
+# 特征配置 (v6.3 统一格式)
+# =============================================================================
+features:
+  # 需要的基础特征（从模型提取）
+  base:
+    - hidden_states             # [n_layers, seq_len, hidden_dim]
+  
+  # 衍生特征定义（从基础特征计算）
+  derived:
+    last_token_embedding:
+      fn: extract_token_embedding
+      from: hidden_states
+      token: last               # last / first / mean / specific
+      layers: middle            # 论文发现中间层效果最佳
+      n_layers: 7               # 对应层 8-14
+      scope: full
+
+# =============================================================================
+# 方法参数
+# =============================================================================
+params:
+  detection:
+    weighted_svd: true
+    feat_loc_svd: 3             # 3=block output
+    layer_selection: middle
+    specific_layers: [8, 9, 10, 11, 12, 13, 14]
+  
+  svd_config:
+    n_components: 10
+    k: 5
+    center: true
+  
+  mlp_config:
+    hidden_dim: 1024
+    learning_rate: 0.05
+    epochs: 50
+    batch_size: 512
+    weight_decay: 0.0003

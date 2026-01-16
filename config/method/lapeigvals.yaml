@@ -1,0 +1,40 @@
+# =============================================================================
+# LapEigvals - Laplacian Eigenvalue-based Hallucination Detection
+# =============================================================================
+# 论文: Hallucination Detection in LLMs Using Spectral Features of Attention Maps
+# 链接: https://github.com/graphml-lab-pwr/lapeigvals (EMNLP 2025)
+# =============================================================================
+
+name: lapeigvals
+cls_path: src.methods.lapeigvals.LapEigvalsMethod
+
+# ============ 基础信息 ============
+level: sample
+classifier: logistic
+random_seed: ${seed}
+
+# =============================================================================
+# 特征配置 (v6.3 统一格式)
+# =============================================================================
+features:
+  # 需要的基础特征（从模型提取）
+  base:
+    - attention_diags           # 注意力对角线
+    - attention_row_sums        # 行和（用于计算度矩阵）
+  
+  # 衍生特征定义（从基础特征计算）
+  derived:
+    laplacian_diags:
+      fn: compute_laplacian_from_diags
+      from: attention_diags     # 主输入
+      scope: response_only      # 只计算 response 部分
+
+# =============================================================================
+# 方法参数
+# =============================================================================
+params:
+  top_k_eigenvalues: 10         # 提取的 top-k 特征值数量
+  use_diagonal_only: true       # 是否只使用对角线（内存高效）
+  aggregate_layers: all         # 层聚合方式: all / last / mean
+  aggregate_heads: all          # 头聚合方式: all / mean
+  include_statistics: true      # 是否包含统计特征

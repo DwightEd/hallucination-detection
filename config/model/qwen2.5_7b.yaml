@@ -1,0 +1,20 @@
+name: Qwen/Qwen2.5-7B-Instruct
+short_name: qwen2.5_7b
+
+# Architecture (will be auto-detected if not specified)
+n_layers: 28
+n_heads: 28
+hidden_size: 3584
+context_size: 32768
+
+# Loading settings
+dtype: bfloat16
+device_map: auto
+trust_remote_code: true
+attn_implementation: eager  # MUST be eager for attention extraction
+load_in_4bit: false
+load_in_8bit: false
+
+# Tokenizer
+tokenizer_name: ${model.name}
+tokenizer_padding_side: left

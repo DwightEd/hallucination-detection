@@ -1,0 +1,57 @@
+# HSDMVAF - Multi-View Attention Features 幻觉检测
+# 论文: https://aclanthology.org/2025.starsem-1.31/
+# 特点: 从注意力矩阵提取三种互补特征 (avg_in, div_in, div_out)
+
+name: hsdmvaf
+cls_path: src.methods.hsdmvaf.HSDMVAFMethod
+classifier: logistic
+random_seed: ${seed}
+
+# -----------------------------------------------------------------------------
+# 训练级别: both (原论文支持 token 级别的 span detection)
+# - sample: 样本级别，MVA 特征聚合 + LogisticRegression
+# - token:  Token级别，使用精确的 hallucination_labels + Transformer+CRF
+# - both:   优先 token 级别，无标签时回退到 sample 级别
+# -----------------------------------------------------------------------------
+level: both
+
+# 特征需求: 最佳使用 full_attention，备选用 attn_diags + attn_entropy
+required_features:
+  attention_diags: true
+  laplacian_diags: false
+  attention_entropy: true
+  full_attention: true
+  hidden_states: false
+  token_probs: false
+  token_entropy: false
+
+params:
+  pooling: max                # 聚合方式: max, mean, any
+  use_full_attention: true    # true=精确MVA, false=对角线近似
+  max_layers: 4               # 限制层数避免特征维度过大
+  max_heads: 8
+  
+  classifier_params:
+    max_iter: 1000
+    C: 1.0
+    class_weight: balanced
+  
+  # Transformer Encoder 配置 (用于独立检测器)
+  encoder:
+    hidden_dim: 256
+    num_heads: 8
+    num_layers: 4
+    feedforward_dim: 512
+    dropout: 0.1
+  
+  use_crf: true
+  
+  training:
+    epochs: 50
+    batch_size: 16
+    learning_rate: 1.0e-4
+    weight_decay: 0.01
+    early_stopping:
+      enabled: true
+      patience: 10
+      monitor: val_f1
