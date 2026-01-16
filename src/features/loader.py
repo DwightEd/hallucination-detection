@@ -237,21 +237,38 @@ class FeatureLoader:
                     logger.warning(f"Failed to load {filepath}: {e}")
     
     def _compute_missing_derived_features(self, required_features: Set[str]):
-        """计算缺失的衍生特征"""
+        """计算缺失的衍生特征（带时间记录）"""
+        import time
+        
+        total_start = time.time()
+        computed = []
         
         # 检查 laplacian_diags
         if "laplacian_diags" in required_features:
             if "laplacian_diags" not in self._loaded_features:
                 if "attn_diags" in self._loaded_features:
+                    start = time.time()
                     logger.info("Computing laplacian_diags from attn_diags...")
                     self._compute_laplacian_diags()
+                    elapsed = time.time() - start
+                    computed.append(("laplacian_diags", elapsed))
         
         # 检查 token_entropy
         if "token_entropy" in required_features:
             if "token_entropy" not in self._loaded_features:
                 if "token_probs" in self._loaded_features:
+                    start = time.time()
                     logger.info("Computing token_entropy from token_probs...")
                     self._compute_token_entropy()
+                    elapsed = time.time() - start
+                    computed.append(("token_entropy", elapsed))
+        
+        # 记录总时间
+        if computed:
+            total_time = time.time() - total_start
+            logger.info(f"Derived feature computation complete in {total_time:.2f}s")
+            for name, t in computed:
+                logger.info(f"  - {name}: {t:.2f}s")
     
     def _compute_laplacian_diags(self):
         """从 attn_diags 计算 laplacian_diags
