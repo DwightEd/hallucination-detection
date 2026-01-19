@@ -378,6 +378,8 @@ class FeatureLoader:
                 logger.info(f"=== First sample feature check ===")
                 logger.info(f"  sample_id: {sample_id}")
                 logger.info(f"  Features matched: {list(sample_features.keys())}")
+               if "hidden_states" in self._feature_indexes:
+                    logger.info(f"  hidden_states: lazy-load available")
                 if not sample_features:
                     logger.warning(f"  WARNING: No features matched for first sample!")
             
