@@ -13,23 +13,32 @@
 5. 更新合并的特征文件
 
 用法:
-    # 步骤1: 标记问题样本
-    python scripts/reextract_truncated_samples.py mark \
-        --features-dir data/ragtruth/features/train \
-        --output truncated_samples.json
+    # 步骤1: 标记问题样本（不需要GPU）
+    python scripts/reextract.py mark \
+        --features-dir data/ragtruth/qwen2.5_7b/features/train \
+        --verbose
 
-    # 步骤2: 重新提取这些样本的特征 (需要模型)
-    python scripts/reextract_truncated_samples.py extract \
-        --features-dir data/ragtruth/features/train \
+    # 步骤2: 重新提取这些样本的特征 (需要GPU)
+    python scripts/reextract.py extract \
+        --features-dir data/ragtruth/qwen2.5_7b/features/train \
         --samples-file truncated_samples.json \
-        --new-max-length 8192 \
-        --model Qwen/Qwen2.5-7B-Instruct
+        --new-max-length 32768 \
+        --model Qwen/Qwen2.5-7B-Instruct \
+        --update-consolidated
 
-    # 一步完成
-    python scripts/reextract_truncated_samples.py all \
-        --features-dir data/ragtruth/features/train \
-        --new-max-length 8192 \
-        --model Qwen/Qwen2.5-7B-Instruct
+    # 一步完成（推荐）
+    python scripts/reextract.py all \
+        --features-dir data/ragtruth/qwen2.5_7b/features/train \
+        --new-max-length 32768 \
+        --model Qwen/Qwen2.5-7B-Instruct \
+        --update-consolidated \
+        --verbose
+        
+    # 不指定 max_length，使用自动计算的建议值
+    python scripts/reextract.py all \
+        --features-dir data/ragtruth/qwen2.5_7b/features/train \
+        --model Qwen/Qwen2.5-7B-Instruct \
+        --update-consolidated
 """
 
 import argparse
@@ -42,6 +51,7 @@ import sys
 import os
 
 import torch
+from transformers import AutoTokenizer
 
 logging.basicConfig(
     level=logging.INFO,
@@ -114,15 +124,67 @@ def load_answers_json(features_dir: Path) -> List[Dict]:
         return json.load(f)
 
 
-def mark_truncated_samples(features_dir: Path, verbose: bool = False) -> List[TruncatedSampleInfo]:
+def mark_truncated_samples(
+    features_dir: Path, 
+    verbose: bool = False,
+    model_name: Optional[str] = None,
+) -> List[TruncatedSampleInfo]:
     """
     扫描所有样本，标记被截断的问题样本。
     
+    关键逻辑：
+    - answers.json 保存了完整的原始文本 (prompt, response)
+    - 但 prompt_len 和 response_len 是截断后的 token 数
+    - 需要用 tokenizer 从原始文本重新计算真实长度
+    
     问题样本包括：
-    1. prompt_len >= seq_len (response 完全被截断)
-    2. response_len <= 1 (response 几乎被完全截断)
+    1. 真实总长度 > 当前 seq_len (被截断)
+    2. stored_response_len <= 1 (response 几乎被完全截断)
+    
+    Args:
+        features_dir: 特征目录
+        verbose: 详细输出
+        model_name: 模型名称，用于加载 tokenizer 计算真实长度
     """
     logger.info(f"Scanning samples in {features_dir}...")
+    
+    # 尝试加载 tokenizer
+    tokenizer = None
+    if model_name:
+        try:
+            logger.info(f"Loading tokenizer: {model_name}")
+            tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+            logger.info("Tokenizer loaded successfully")
+        except Exception as e:
+            logger.warning(f"Failed to load tokenizer: {e}. Will use stored lengths.")
+    else:
+        # 尝试从 metadata.json 或 config.yaml 获取模型名称
+        metadata_path = features_dir / "metadata.json"
+        config_path = features_dir / "config.yaml"
+        
+        if metadata_path.exists():
+            try:
+                with open(metadata_path) as f:
+                    metadata = json.load(f)
+                model_name = metadata.get("config", {}).get("model", {}).get("name")
+            except:
+                pass
+        
+        if not model_name and config_path.exists():
+            try:
+                from omegaconf import OmegaConf
+                cfg = OmegaConf.load(config_path)
+                model_name = cfg.get("model", {}).get("name")
+            except:
+                pass
+        
+        if model_name:
+            try:
+                logger.info(f"Auto-detected model: {model_name}")
+                tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+                logger.info("Tokenizer loaded successfully")
+            except Exception as e:
+                logger.warning(f"Failed to load tokenizer: {e}. Will use stored lengths.")
     
     answers = load_answers_json(features_dir)
     truncated_samples = []
@@ -143,11 +205,11 @@ def mark_truncated_samples(features_dir: Path, verbose: bool = False) -> List[Tr
         
         feat = features_data.get('features', {})
         
-        # 获取实际的 prompt_len 和 response_len（特征提取时记录的）
+        # 获取存储的（截断后的）prompt_len 和 response_len
         stored_prompt_len = feat.get('prompt_len', 0)
         stored_response_len = feat.get('response_len', 0)
         
-        # 获取实际序列长度
+        # 获取实际序列长度（从注意力矩阵）
         seq_len = get_attention_seq_len(features_data)
         
         if seq_len is None:
@@ -155,23 +217,37 @@ def mark_truncated_samples(features_dir: Path, verbose: bool = False) -> List[Tr
                 logger.warning(f"Sample {sample_id}: no attention data")
             continue
         
-        # 从 answers.json 获取原始长度（可能未截断）
-        original_prompt_len = answer.get('prompt_len', stored_prompt_len)
-        original_response_len = answer.get('response_len', stored_response_len)
+        # 计算真实的原始长度
+        if tokenizer is not None and 'prompt' in answer and 'response' in answer:
+            # 从原始文本计算真实 token 长度
+            prompt_tokens = tokenizer.encode(answer['prompt'], add_special_tokens=True)
+            response_tokens = tokenizer.encode(answer['response'], add_special_tokens=False)
+            original_prompt_len = len(prompt_tokens)
+            original_response_len = len(response_tokens)
+        else:
+            # 回退：使用存储的值（但这可能是截断后的值）
+            original_prompt_len = stored_prompt_len
+            original_response_len = stored_response_len
+        
         original_total_len = original_prompt_len + original_response_len
         
         # 判断问题类型
         issue_type = None
         
-        if stored_prompt_len >= seq_len:
-            # response_idx >= seq_len，response 完全被截断
-            issue_type = "prompt_truncated"
-        elif stored_response_len <= 1:
-            # response 几乎被完全截断
+        if original_total_len > seq_len:
+            # 真实长度超过当前序列长度，说明被截断了
+            if original_prompt_len >= seq_len:
+                # prompt 本身就超过了 seq_len，response 完全被截断
+                issue_type = "prompt_exceeds_seq"
+            elif stored_response_len <= 1:
+                # response 几乎被完全截断
+                issue_type = "response_too_short"
+            else:
+                # response 被部分截断
+                issue_type = "response_truncated"
+        elif stored_response_len <= 1 and original_response_len > 1:
+            # 存储的 response_len 很短，但原始 response 应该更长
             issue_type = "response_too_short"
-        elif original_total_len > seq_len and original_response_len > stored_response_len:
-            # response 被部分截断
-            issue_type = "response_truncated"
         
         if issue_type:
             info = TruncatedSampleInfo(
@@ -187,7 +263,8 @@ def mark_truncated_samples(features_dir: Path, verbose: bool = False) -> List[Tr
             if verbose:
                 logger.info(
                     f"Found truncated sample: {sample_id} "
-                    f"(type={issue_type}, original_total={original_total_len}, seq_len={seq_len})"
+                    f"(type={issue_type}, original_total={original_total_len}, seq_len={seq_len}, "
+                    f"stored_response_len={stored_response_len})"
                 )
     
     return truncated_samples
@@ -428,6 +505,8 @@ def update_consolidated_features(
         "laplacian_diags": "laplacian_diags.pt",
         "attn_entropy": "attn_entropy.pt",
         "attn_row_sums": "attn_row_sums.pt",
+        "full_attentions": "full_attentions.pt",  # hypergraph 需要
+        "hidden_states": "hidden_states.pt",      # haloscope 等需要
         "token_probs": "token_probs.pt",
         "token_entropy": "token_entropy.pt",
         "hallucination_labels": "hallucination_labels.pt",
@@ -480,8 +559,13 @@ def cmd_mark(args):
         logger.error(f"Features directory not found: {features_dir}")
         return 1
     
-    # 标记问题样本
-    truncated_samples = mark_truncated_samples(features_dir, verbose=args.verbose)
+    # 标记问题样本（传入模型名称用于计算真实长度）
+    model_name = getattr(args, 'model', None)
+    truncated_samples = mark_truncated_samples(
+        features_dir, 
+        verbose=args.verbose,
+        model_name=model_name,
+    )
     
     if not truncated_samples:
         logger.info("✓ No truncated samples found!")
@@ -554,9 +638,13 @@ def cmd_all(args):
         logger.error(f"Features directory not found: {features_dir}")
         return 1
     
-    # 1. 标记问题样本
+    # 1. 标记问题样本（使用同一个模型名称）
     logger.info("Step 1: Marking truncated samples...")
-    truncated_samples = mark_truncated_samples(features_dir, verbose=args.verbose)
+    truncated_samples = mark_truncated_samples(
+        features_dir, 
+        verbose=args.verbose,
+        model_name=args.model,  # 使用提取时的模型来计算真实长度
+    )
     
     if not truncated_samples:
         logger.info("✓ No truncated samples found! Nothing to do.")
@@ -623,6 +711,8 @@ def main():
                             help='特征目录路径')
     mark_parser.add_argument('--output', '-o', type=str, default=None,
                             help='输出文件路径 (默认: features_dir/truncated_samples.json)')
+    mark_parser.add_argument('--model', '-m', type=str, default=None,
+                            help='模型名称（用于加载tokenizer计算真实长度，不指定则自动从config检测）')
     mark_parser.add_argument('--verbose', '-v', action='store_true',
                             help='详细输出')
     

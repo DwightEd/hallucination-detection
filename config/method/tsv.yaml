@@ -1,0 +1,98 @@
+# TSV (Truthfulness Separator Vector) 方法配置
+# 基于 ICML 2025 论文: "Steer LLM Latents for Hallucination Detection"
+# 
+# 核心思想:
+# - 学习一个 steering vector 在推理时加入 LLM 隐藏状态
+# - 使用 vMF 分布计算 truthfulness score
+# - 支持两阶段训练: 标注数据训练 + 伪标签增强
+#
+# 特征需求:
+# - hidden_states: 必需 (使用 last-token embedding)
+
+# 方法基础配置
+name: tsv
+classifier: custom  # TSV 使用自定义的 vMF 分类器
+cv_folds: 1         # TSV 不使用标准交叉验证
+
+# TSV 特定参数
+params:
+  # ========== 核心 TSV 参数 ==========
+  # Steering 强度 (λ)
+  # 控制 TSV 向量对隐藏状态的影响程度
+  # 论文默认: 5.0, 范围: [0.1, 10]
+  steering_strength: 5.0
+  
+  # vMF 浓度参数 (κ)
+  # 控制类别分布的集中程度
+  # 论文默认: 10.0, 范围: [1, 50]
+  kappa: 10.0
+  
+  # ========== 层选择配置 ==========
+  # 层选择策略
+  # - 'middle': 使用中间层 (25%-50%), 论文推荐
+  # - 'all': 使用所有层
+  # - 'specific': 使用指定的层
+  layer_selection: middle
+  
+  # 当 layer_selection='specific' 时使用
+  # 例如: [4, 5, 6, 7, 8, 9, 10] for LLaMA-3.1-8b
+  specific_layers: null
+  
+  # ========== 训练参数 ==========
+  # 学习率
+  learning_rate: 0.005
+  
+  # Stage 1 训练轮数 (在标注数据上)
+  epochs_stage1: 20
+  
+  # Stage 2 训练轮数 (在增强数据上)
+  epochs_stage2: 20
+  
+  # 批大小
+  batch_size: 128
+  
+  # ========== Sinkhorn 最优传输参数 ==========
+  # Sinkhorn 迭代次数
+  sinkhorn_iters: 3
+  
+  # Sinkhorn 正则化参数
+  sinkhorn_epsilon: 0.05
+  
+  # ========== 伪标签配置 ==========
+  # 伪标签置信度阈值
+  # 只有置信度高于此阈值的样本才会被加入训练
+  confidence_threshold: 0.9
+  
+  # ========== EMA 参数 ==========
+  # 原型更新的 EMA 衰减率
+  ema_decay: 0.99
+
+# 特征需求声明
+feature_requirements:
+  hidden_states: true    # 必需: 隐藏状态
+  attention_diags: false # 不需要
+  token_probs: false     # 不需要
+  full_attention: false  # 不需要
+
+# 针对不同模型的推荐层配置
+# 这些是论文中验证过的最优配置
+model_specific_layers:
+  # LLaMA-3.1-8b: 32 layers, 推荐 4-10 层
+  llama-3.1-8b:
+    specific_layers: [4, 5, 6, 7, 8, 9, 10]
+  
+  # Qwen-2.5-7b: 28 layers, 推荐 4-7 层  
+  qwen-2.5-7b:
+    specific_layers: [4, 5, 6, 7]
+  
+  # Mistral-7B: 32 layers, 推荐 4-10 层
+  mistral-7b:
+    specific_layers: [4, 5, 6, 7, 8, 9, 10]
+  
+  # LLaMA-3.1-70b: 80 layers, 推荐 31 层附近
+  llama-3.1-70b:
+    specific_layers: [28, 29, 30, 31, 32, 33, 34]
+  
+  # Qwen-2.5-14b: 40 layers, 推荐 23 层附近
+  qwen-2.5-14b:
+    specific_layers: [20, 21, 22, 23, 24, 25, 26]
