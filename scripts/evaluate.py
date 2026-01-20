@@ -278,8 +278,11 @@ def evaluate_single_level(
     level_config = MethodConfig(
         name=method_config.name,
         level=level,
-        feature_requirements=method_config.feature_requirements,
-        hyperparameters=method_config.hyperparameters,
+        classifier=method_config.classifier,
+        cv_folds=method_config.cv_folds,
+        random_seed=method_config.random_seed,
+        params=method_config.params,
+        required_features=method_config.required_features,
     )
     method = create_method(method_name, config=level_config)
     method.load(model_path)

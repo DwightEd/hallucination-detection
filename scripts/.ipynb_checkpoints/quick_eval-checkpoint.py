@@ -346,13 +346,29 @@ def main():
     parser.add_argument("--all_tasks", nargs="+", default=["QA", "Summary", "Data2txt"],
                        help="跨任务评估时的所有任务列表")
     
-    parser.add_argument("--seed", type=int, default=42, help="随机种子")
+    parser.add_argument("--seed", type=int, default=42, help="默认随机种子")
+    parser.add_argument("--method_seeds", nargs="+", default=[], 
+                       help="为特定方法指定不同的 seed，格式: method:seed (如 haloscope:41)")
     parser.add_argument("--features_dir", default="outputs/features", help="特征目录")
     parser.add_argument("--models_dir", default="outputs/models", help="模型目录")
+    parser.add_argument("--results_dir", default="outputs/results", help="结果目录（用于保存 eval_results.json）")
     parser.add_argument("--output", default=None, help="结果输出文件")
     parser.add_argument("--level", default="sample", help="分类级别")
+    parser.add_argument("--save_eval_results", action="store_true",
+                       help="保存 eval_results.json 到 results_dir（可被 aggregate_results.py 识别）")
     
     args = parser.parse_args()
+    
+    # 解析 per-method seeds
+    method_seed_map = {}
+    for item in args.method_seeds:
+        if ':' in item:
+            method, seed_str = item.split(':', 1)
+            method_seed_map[method] = int(seed_str)
+    
+    def get_seed_for_method(method_name: str) -> int:
+        """获取特定方法的 seed"""
+        return method_seed_map.get(method_name, args.seed)
     
     # 处理任务参数
     if args.task_type:
@@ -375,7 +391,7 @@ def main():
     models_dir = Path(args.models_dir)
     
     logger.info("=" * 60)
-    logger.info("Quick Evaluation (Fixed Version v2)")
+    logger.info("Quick Evaluation (Fixed Version v3)")
     logger.info("=" * 60)
     logger.info(f"Dataset: {args.dataset}")
     logger.info(f"Model: {args.model}")
@@ -383,6 +399,9 @@ def main():
     logger.info(f"Eval tasks: {eval_tasks}")
     logger.info(f"Cross-task: {args.cross_task}")
     logger.info(f"Methods: {args.methods}")
+    logger.info(f"Default seed: {args.seed}")
+    if method_seed_map:
+        logger.info(f"Method-specific seeds: {method_seed_map}")
     logger.info("=" * 60)
     
     all_results = []
@@ -393,82 +412,117 @@ def main():
         logger.info(f"Evaluating on: {eval_task}_test")
         logger.info(f"{'='*60}")
         
-        # 查找测试集特征目录
-        test_feat_dir = find_test_features_dir(
-            features_dir, args.dataset, args.model, args.seed, eval_task
-        )
-        
-        if test_feat_dir is None:
-            logger.error(f"Test features directory not found for {eval_task}")
-            logger.error(f"Searched: {features_dir}/{args.dataset}/{args.model}/seed_{args.seed}/{eval_task}_test")
-            continue
-        
-        logger.info(f"Loading test features from: {test_feat_dir}")
-        
-        # 加载测试集特征
-        try:
-            test_features, test_labels = load_features_from_dir(test_feat_dir)
-        except Exception as e:
-            logger.error(f"Failed to load test features: {e}")
-            import traceback
-            traceback.print_exc()
-            continue
-        
-        n_positive = sum(test_labels)
-        n_negative = len(test_labels) - n_positive
-        logger.info(f"Loaded {len(test_features)} test samples ({n_positive} positive, {n_negative} negative)")
-        
-        if n_positive == 0 or n_negative == 0:
-            logger.warning(f"⚠️ Only one class in test set! Results may be meaningless.")
-        
-        # 评估每个方法
+        # 按照 seed 分组处理方法
+        # 对于每个唯一的 seed，加载一次对应的测试特征
+        methods_by_seed = {}
         for method_name in args.methods:
-            logger.info(f"\n>>> Evaluating: {method_name} (trained on {train_task}, eval on {eval_task})")
+            method_seed = get_seed_for_method(method_name)
+            if method_seed not in methods_by_seed:
+                methods_by_seed[method_seed] = []
+            methods_by_seed[method_seed].append(method_name)
+        
+        # 处理每个 seed 的方法组
+        for seed_val, methods_for_seed in methods_by_seed.items():
+            logger.info(f"\n--- Processing methods with seed={seed_val}: {methods_for_seed} ---")
             
-            # 查找模型（使用 train_task）
-            model_path = find_model_path(
-                models_dir, args.dataset, args.model, args.seed, 
-                train_task, method_name, args.level
+            # 查找该 seed 对应的测试集特征目录
+            test_feat_dir = find_test_features_dir(
+                features_dir, args.dataset, args.model, seed_val, eval_task
             )
             
-            if model_path is None:
-                logger.error(f"  Model not found for {method_name}")
-                logger.error(f"  Searched: {models_dir}/{args.dataset}/{args.model}/seed_{args.seed}/{train_task}/{method_name}/")
-                all_results.append({
-                    "method": method_name,
-                    "train_task": train_task,
-                    "eval_task": eval_task,
-                    "error": "Model file not found"
-                })
+            if test_feat_dir is None:
+                logger.error(f"Test features directory not found for seed={seed_val}, task={eval_task}")
+                logger.error(f"Searched: {features_dir}/{args.dataset}/{args.model}/seed_{seed_val}/{eval_task}_test")
+                for method_name in methods_for_seed:
+                    all_results.append({
+                        "method": method_name,
+                        "train_task": train_task,
+                        "eval_task": eval_task,
+                        "seed": seed_val,
+                        "error": f"Test features not found for seed={seed_val}"
+                    })
                 continue
             
-            logger.info(f"  Model: {model_path}")
+            logger.info(f"Loading test features from: {test_feat_dir}")
             
-            result = evaluate_method(method_name, model_path, test_features, test_labels)
-            result["train_task"] = train_task
-            result["eval_task"] = eval_task
-            all_results.append(result)
+            # 加载测试集特征
+            try:
+                test_features, test_labels = load_features_from_dir(test_feat_dir)
+            except Exception as e:
+                logger.error(f"Failed to load test features: {e}")
+                import traceback
+                traceback.print_exc()
+                for method_name in methods_for_seed:
+                    all_results.append({
+                        "method": method_name,
+                        "train_task": train_task,
+                        "eval_task": eval_task,
+                        "seed": seed_val,
+                        "error": str(e)
+                    })
+                continue
             
-            if "error" in result:
-                logger.error(f"  Error: {result['error']}")
-            else:
-                logger.info(f"  AUROC: {result.get('auroc', 0):.4f}")
-                logger.info(f"  AUPR:  {result.get('aupr', 0):.4f}")
-                logger.info(f"  F1:    {result.get('f1', 0):.4f}")
+            n_positive = sum(test_labels)
+            n_negative = len(test_labels) - n_positive
+            logger.info(f"Loaded {len(test_features)} test samples ({n_positive} positive, {n_negative} negative)")
+            
+            if n_positive == 0 or n_negative == 0:
+                logger.warning(f"⚠️ Only one class in test set! Results may be meaningless.")
+            
+            # 评估该 seed 对应的每个方法
+            for method_name in methods_for_seed:
+                logger.info(f"\n>>> Evaluating: {method_name} (seed={seed_val}, trained on {train_task}, eval on {eval_task})")
+                
+                # 查找模型（使用该方法的 seed）
+                model_path = find_model_path(
+                    models_dir, args.dataset, args.model, seed_val, 
+                    train_task, method_name, args.level
+                )
+                
+                if model_path is None:
+                    logger.error(f"  Model not found for {method_name}")
+                    logger.error(f"  Searched: {models_dir}/{args.dataset}/{args.model}/seed_{seed_val}/{train_task}/{method_name}/")
+                    all_results.append({
+                        "method": method_name,
+                        "train_task": train_task,
+                        "eval_task": eval_task,
+                        "seed": seed_val,
+                        "error": "Model file not found"
+                    })
+                    continue
+                
+                logger.info(f"  Model: {model_path}")
+                
+                result = evaluate_method(method_name, model_path, test_features, test_labels)
+                result["train_task"] = train_task
+                result["eval_task"] = eval_task
+                result["seed"] = seed_val
+                all_results.append(result)
+                
+                if "error" in result:
+                    logger.error(f"  Error: {result['error']}")
+                else:
+                    logger.info(f"  AUROC: {result.get('auroc', 0):.4f}")
+                    logger.info(f"  AUPR:  {result.get('aupr', 0):.4f}")
+                    logger.info(f"  F1:    {result.get('f1', 0):.4f}")
     
     # 汇总结果
-    print("\n" + "=" * 80)
+    print("\n" + "=" * 90)
     print("SUMMARY")
-    print("=" * 80)
+    print("=" * 90)
     
-    if args.cross_task:
-        print(f"{'Method':<15} {'Train':<12} {'Eval':<12} {'AUROC':<10} {'AUPR':<10} {'F1':<10}")
-        print("-" * 80)
+    # 检查是否有不同的 seed
+    has_multiple_seeds = len(set(r.get("seed", args.seed) for r in all_results)) > 1
+    
+    if args.cross_task or has_multiple_seeds:
+        print(f"{'Method':<15} {'Seed':<6} {'Train':<12} {'Eval':<12} {'AUROC':<10} {'AUPR':<10} {'F1':<10}")
+        print("-" * 90)
         for result in all_results:
+            seed_val = result.get("seed", args.seed)
             if "error" in result:
-                print(f"{result['method']:<15} {result.get('train_task', 'N/A'):<12} {result.get('eval_task', 'N/A'):<12} ERROR")
+                print(f"{result['method']:<15} {seed_val:<6} {result.get('train_task', 'N/A'):<12} {result.get('eval_task', 'N/A'):<12} ERROR: {result['error'][:20]}")
             else:
-                print(f"{result['method']:<15} {result.get('train_task', 'N/A'):<12} {result.get('eval_task', 'N/A'):<12} "
+                print(f"{result['method']:<15} {seed_val:<6} {result.get('train_task', 'N/A'):<12} {result.get('eval_task', 'N/A'):<12} "
                       f"{result.get('auroc', 0):.4f}     {result.get('aupr', 0):.4f}     {result.get('f1', 0):.4f}")
     else:
         print(f"{'Method':<20} {'AUROC':<10} {'AUPR':<10} {'F1':<10} {'N_samples':<10}")
@@ -480,9 +534,56 @@ def main():
                 print(f"{result['method']:<20} {result.get('auroc', 0):.4f}     {result.get('aupr', 0):.4f}     "
                       f"{result.get('f1', 0):.4f}     {result.get('n_samples', 0)}")
     
-    print("=" * 80)
+    print("=" * 90)
     
-    # 保存结果
+    # 保存 eval_results.json 到 results_dir（可被 aggregate_results.py 识别）
+    if args.save_eval_results:
+        results_base = Path(args.results_dir)
+        for result in all_results:
+            if "error" in result:
+                continue
+            
+            method = result.get("method", "unknown")
+            train_t = result.get("train_task", train_task)
+            eval_t = result.get("eval_task", train_task)
+            method_seed = result.get("seed", args.seed)  # 使用该方法的 seed
+            
+            # 构建路径: results/{dataset}/{model}/seed_{seed}/train_{train_task}_eval_{eval_task}/{method}/
+            result_dir = (results_base / args.dataset / args.model / 
+                         f"seed_{method_seed}" / f"train_{train_t}_eval_{eval_t}" / method)
+            result_dir.mkdir(parents=True, exist_ok=True)
+            
+            # 转换为 aggregate_results.py 期望的格式
+            eval_results = {
+                "level": args.level,
+                "config": {
+                    "dataset": args.dataset,
+                    "model": args.model,
+                    "method": method,
+                    "seed": method_seed,
+                    "train_task": train_t,
+                    "eval_task": eval_t,
+                },
+                "train_metrics": {},  # quick_eval 不计算训练集指标
+                "test_metrics": {
+                    "auroc": result.get("auroc", 0),
+                    "aupr": result.get("aupr", 0),
+                    "f1": result.get("f1", 0),
+                    "n_samples": result.get("n_samples", 0),
+                    "n_positive": result.get("n_positive", 0),
+                    "n_negative": result.get("n_negative", 0),
+                },
+            }
+            
+            eval_file = result_dir / "eval_results.json"
+            with open(eval_file, "w") as f:
+                json.dump(eval_results, f, indent=2)
+            logger.info(f"Saved: {eval_file}")
+        
+        logger.info(f"\nEval results saved to {results_base}")
+        logger.info("Run `python scripts/aggregate_results.py` to aggregate all results.")
+    
+    # 保存结果（旧格式）
     if args.output:
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)

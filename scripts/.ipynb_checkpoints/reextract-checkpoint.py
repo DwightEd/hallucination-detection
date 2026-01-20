@@ -44,10 +44,23 @@ class TruncatedSample:
     original_response_len: int
     stored_prompt_len: int
     stored_response_len: int
+    seq_len: int = 0  # 实际序列长度
     
     @property
     def is_truncated(self) -> bool:
         return self.stored_response_len < self.original_response_len
+    
+    @property
+    def is_prompt_overflow(self) -> bool:
+        """prompt 长度超过或等于序列长度，导致没有 response 空间"""
+        return self.seq_len > 0 and self.stored_prompt_len >= self.seq_len
+    
+    @property
+    def actual_response_region(self) -> int:
+        """实际可用的 response 区域长度"""
+        if self.seq_len <= 0:
+            return self.stored_response_len
+        return max(0, self.seq_len - self.stored_prompt_len)
 
 
 def detect_truncated_samples(
@@ -58,7 +71,11 @@ def detect_truncated_samples(
     """
     检测被截断的样本
     
-    对比原始文本的 token 长度与实际存储的长度
+    检测条件（满足任一即报告）：
+    1. stored_response_len < original_response_len（被截断）
+    2. stored_response_len <= min_response_threshold（response 太短）
+    3. prompt_len >= seq_len（prompt 溢出，没有 response 空间）
+    4. actual_response_region <= min_response_threshold（实际可用 response 区域太短）
     """
     from transformers import AutoTokenizer
     
@@ -106,6 +123,16 @@ def detect_truncated_samples(
             feat = data.get('features', data)
             stored_prompt_len = feat.get('prompt_len', 0) or 0
             stored_response_len = feat.get('response_len', 0) or 0
+            
+            # 获取实际序列长度（从 attn_diags 或其他特征推断）
+            seq_len = 0
+            for key in ['attn_diags', 'token_probs', 'laplacian_diags']:
+                tensor = feat.get(key)
+                if tensor is not None:
+                    if isinstance(tensor, torch.Tensor):
+                        if len(tensor.shape) >= 1:
+                            seq_len = tensor.shape[-1]
+                            break
         except Exception as e:
             logger.warning(f"无法读取 {pt_file}: {e}")
             continue
@@ -114,21 +141,34 @@ def detect_truncated_samples(
         if checked % 500 == 0:
             logger.info(f"  进度: {checked}/{len(answers)}")
         
-        # 判断是否被截断或 response 太短
+        # 判断问题条件
         is_truncated = stored_response_len < original_response_len
         is_too_short = stored_response_len <= min_response_threshold
+        is_prompt_overflow = seq_len > 0 and stored_prompt_len >= seq_len
+        actual_response_region = max(0, seq_len - stored_prompt_len) if seq_len > 0 else stored_response_len
+        is_region_too_short = actual_response_region <= min_response_threshold
         
-        if is_truncated or is_too_short:
+        if is_truncated or is_too_short or is_prompt_overflow or is_region_too_short:
             truncated_samples.append(TruncatedSample(
                 sample_id=sample_id,
                 original_prompt_len=original_prompt_len,
                 original_response_len=original_response_len,
                 stored_prompt_len=stored_prompt_len,
                 stored_response_len=stored_response_len,
+                seq_len=seq_len,
             ))
     
     logger.info(f"检查完成: {checked} 个样本")
     logger.info(f"发现问题样本: {len(truncated_samples)}")
+    
+    # 按问题类型统计
+    n_truncated = sum(1 for s in truncated_samples if s.is_truncated)
+    n_prompt_overflow = sum(1 for s in truncated_samples if s.is_prompt_overflow)
+    n_region_short = sum(1 for s in truncated_samples if s.actual_response_region <= min_response_threshold)
+    
+    logger.info(f"  - 被截断: {n_truncated}")
+    logger.info(f"  - prompt 溢出 (prompt_len >= seq_len): {n_prompt_overflow}")
+    logger.info(f"  - response 区域过短 (<= {min_response_threshold}): {n_region_short}")
     
     return truncated_samples
 
@@ -141,7 +181,15 @@ def reextract_samples(
     new_max_length: int,
     device: str = "cuda",
 ) -> Tuple[int, int]:
-    """重新提取被截断的样本"""
+    """重新提取被截断的样本
+    
+    流程:
+    1. 加载模型和特征提取器
+    2. 对问题样本重新提取基础特征
+    3. 计算衍生特征 (laplacian_diags 等)
+    4. 保存到 features_individual/
+    5. 更新合并特征文件 features/*.pt
+    """
     from src.core import Sample, ModelConfig, FeaturesConfig, sanitize_sample_id
     from src.models import get_model, unload_all_models
     from src.features import create_extractor_from_requirements
@@ -225,11 +273,19 @@ def reextract_samples(
                 "layers": features.layers,
             }
             
-            for attr in ['attn_diags', 'attn_row_sums', 'laplacian_diags', 'attn_entropy',
+            for attr in ['attn_diags', 'attn_row_sums', 'attn_entropy',
                          'hidden_states', 'token_probs', 'token_entropy']:
                 value = getattr(features, attr, None)
                 if value is not None:
                     features_dict[attr] = value
+            
+            # ========== 计算衍生特征 ==========
+            # laplacian_diags = 1.0 - attn_diags
+            if features_dict.get('attn_diags') is not None:
+                attn_diags = features_dict['attn_diags']
+                if isinstance(attn_diags, torch.Tensor):
+                    features_dict['laplacian_diags'] = 1.0 - attn_diags.float()
+                    logger.debug(f"    Computed laplacian_diags")
             
             if features.full_attention is not None:
                 features_dict['full_attentions'] = features.full_attention
@@ -282,8 +338,16 @@ def update_consolidated_features(
     individual_dir: Path,
     extracted_features: Dict[str, Dict],
 ):
-    """更新 features/ 目录下的合并特征文件"""
-    # 常规特征
+    """更新 features/ 目录下的合并特征文件
+    
+    改进:
+    1. 如果文件不存在但有数据，会创建新文件
+    2. 正确处理衍生特征 (laplacian_diags)
+    3. 更新 metadata.json
+    """
+    consolidated_dir.mkdir(exist_ok=True)
+    
+    # 常规特征（存储为 dict: sample_id -> tensor）
     regular_features = [
         "attn_diags", "laplacian_diags", "attn_entropy",
         "token_probs", "token_entropy",
@@ -291,10 +355,7 @@ def update_consolidated_features(
     ]
     
     for feat_key in regular_features:
-        feat_file = consolidated_dir / f"{feat_key}.pt"
-        if not feat_file.exists():
-            continue
-        
+        # 收集有该特征的样本
         samples_with_feat = [
             (sid, data[feat_key]) 
             for sid, data in extracted_features.items() 
@@ -304,27 +365,33 @@ def update_consolidated_features(
         if not samples_with_feat:
             continue
         
+        feat_file = consolidated_dir / f"{feat_key}.pt"
+        
+        # 加载已有数据（如果存在）
         try:
-            feat_data = torch.load(feat_file, map_location='cpu', weights_only=False)
-            if not isinstance(feat_data, dict):
+            if feat_file.exists():
+                feat_data = torch.load(feat_file, map_location='cpu', weights_only=False)
+                if not isinstance(feat_data, dict):
+                    feat_data = {}
+            else:
                 feat_data = {}
-        except:
+                logger.info(f"  创建新文件: {feat_key}.pt")
+        except Exception as e:
+            logger.warning(f"  无法加载 {feat_key}.pt: {e}, 将创建新文件")
             feat_data = {}
         
+        # 合并新数据
         for sid, value in samples_with_feat:
             feat_data[sid] = value
         
+        # 保存
         torch.save(feat_data, feat_file)
-        logger.info(f"  更新 {feat_key}.pt: {len(samples_with_feat)} 个样本")
+        logger.info(f"  更新 {feat_key}.pt: +{len(samples_with_feat)} 个样本 (总计 {len(feat_data)})")
     
-    # 大特征索引
+    # 大特征索引（hidden_states, full_attentions）
     large_features = ["hidden_states", "full_attentions"]
     
     for feat_key in large_features:
-        index_file = consolidated_dir / f"{feat_key}_index.json"
-        if not index_file.exists():
-            continue
-        
         samples_with_feat = [
             sid for sid, data in extracted_features.items() 
             if feat_key in data and data[feat_key] is not None
@@ -333,22 +400,56 @@ def update_consolidated_features(
         if not samples_with_feat:
             continue
         
+        index_file = consolidated_dir / f"{feat_key}_index.json"
+        
+        # 加载已有索引
         try:
-            with open(index_file, 'r') as f:
-                index_data = json.load(f)
-            index = index_data.get('index', {})
-        except:
+            if index_file.exists():
+                with open(index_file, 'r') as f:
+                    index_data = json.load(f)
+                index = index_data.get('index', {})
+            else:
+                index_data = {"storage_mode": "individual", "index": {}}
+                index = {}
+                logger.info(f"  创建新索引: {feat_key}_index.json")
+        except Exception as e:
+            logger.warning(f"  无法加载 {feat_key}_index.json: {e}, 将创建新索引")
+            index_data = {"storage_mode": "individual", "index": {}}
             index = {}
         
+        # 更新索引
         for sid in samples_with_feat:
             safe_id = sanitize_sample_id(sid)
             index[sid] = str(individual_dir / f"{safe_id}.pt")
         
         index_data['index'] = index
         index_data['sample_count'] = len(index)
+        
         with open(index_file, 'w') as f:
             json.dump(index_data, f, indent=2)
-        logger.info(f"  更新 {feat_key}_index.json: {len(samples_with_feat)} 个样本")
+        logger.info(f"  更新 {feat_key}_index.json: +{len(samples_with_feat)} 个样本 (总计 {len(index)})")
+    
+    # 更新 metadata.json
+    metadata_file = consolidated_dir.parent / "metadata.json"
+    if metadata_file.exists():
+        try:
+            with open(metadata_file, 'r') as f:
+                metadata = json.load(f)
+            
+            # 确保 sample_ids 包含所有重新提取的样本
+            existing_ids = set(metadata.get('sample_ids', []))
+            new_ids = set(extracted_features.keys())
+            all_ids = list(existing_ids | new_ids)
+            
+            metadata['sample_ids'] = all_ids
+            metadata['reextracted_samples'] = list(new_ids)
+            metadata['reextract_count'] = len(new_ids)
+            
+            with open(metadata_file, 'w') as f:
+                json.dump(metadata, f, indent=2)
+            logger.info(f"  更新 metadata.json: 总计 {len(all_ids)} 个样本")
+        except Exception as e:
+            logger.warning(f"  无法更新 metadata.json: {e}")
 
 
 def main():
@@ -389,22 +490,31 @@ def main():
         return 0
     
     # 打印详情
+    min_response_threshold = args.min_response_threshold
     print("\n问题样本列表:")
-    print("-" * 80)
-    print(f"{'sample_id':<40} {'orig_resp':<10} {'stored_resp':<12} {'状态'}")
-    print("-" * 80)
-    for s in sorted(truncated, key=lambda x: x.stored_response_len)[:30]:
-        status = "截断" if s.is_truncated else "原始就短"
-        print(f"{s.sample_id:<40} {s.original_response_len:<10} {s.stored_response_len:<12} {status}")
+    print("-" * 100)
+    print(f"{'sample_id':<40} {'prompt':<8} {'seq_len':<8} {'resp_region':<12} {'状态'}")
+    print("-" * 100)
+    for s in sorted(truncated, key=lambda x: x.actual_response_region)[:30]:
+        if s.is_prompt_overflow:
+            status = "⚠️ prompt溢出"
+        elif s.actual_response_region <= min_response_threshold:
+            status = "⚠️ 区域过短"
+        elif s.is_truncated:
+            status = "截断"
+        else:
+            status = "原始就短"
+        print(f"{s.sample_id:<40} {s.stored_prompt_len:<8} {s.seq_len:<8} {s.actual_response_region:<12} {status}")
     if len(truncated) > 30:
         print(f"... 还有 {len(truncated) - 30} 个")
-    print("-" * 80)
+    print("-" * 100)
     
     # 保存列表
     output_file = features_dir / "truncated_samples.json"
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump({
             'count': len(truncated),
+            'min_response_threshold': args.min_response_threshold,
             'samples': [
                 {
                     'sample_id': s.sample_id,
@@ -412,7 +522,10 @@ def main():
                     'original_response_len': s.original_response_len,
                     'stored_prompt_len': s.stored_prompt_len,
                     'stored_response_len': s.stored_response_len,
+                    'seq_len': s.seq_len,
+                    'actual_response_region': s.actual_response_region,
                     'is_truncated': s.is_truncated,
+                    'is_prompt_overflow': s.is_prompt_overflow,
                 }
                 for s in truncated
             ]
