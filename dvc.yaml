@@ -1,14 +1,19 @@
 # =============================================================================
-# DVC Pipeline for Hallucination Detection
+# DVC Pipeline for Hallucination Detection (v2.0 - Fixed)
 # =============================================================================
 # 目录结构: {base}/{dataset}/{model}/seed_{seed}/{task_type}/{method}/{level}/
 # 
+# ⚠️ 重要变更 (v2.0):
+# - train_probe 和 evaluate 使用 method_levels 组合替代独立的 methods × levels
+# - train_probe 输出具体文件而不是整个目录，避免与 evaluate 的路径重叠
+# - 只训练/评估方法实际支持的级别
+#
 # 流程顺序:
 #   1. split_dataset - 分割数据集
 #   2. generate_activations - 提取训练集特征
 #   3. generate_activations_test - 提取测试集特征
-#   4. train_probe - 训练探测器 (按 method × level 组合)
-#   5. evaluate - 评估 (按 method × level 组合)
+#   4. train_probe - 训练探测器 (按 method_levels 组合)
+#   5. evaluate - 评估 (按 method_levels 组合)
 #   6. aggregate - 汇总结果
 # =============================================================================
 
@@ -111,22 +116,26 @@ stages:
   # ===========================================================================
   # Stage 3: 训练探测器
   # ===========================================================================
-  # ⚠️ 变更: 增加了 level 矩阵参数，输出路径改为 {method}/{level}/
+  # ⚠️ 变更说明:
+  # - 使用 method_levels 组合替代独立的 methods × levels 矩阵
+  # - 这确保只训练方法实际支持的级别（来自方法配置的 level 字段）
+  # - 输出具体文件 (model.pkl, train_metrics.json) 而不是目录
+  #   避免与 evaluate stage 的输出路径重叠
+  # ===========================================================================
   train_probe: 
     matrix: 
       dataset: ${datasets}
       task_type: ${task_types}
       model: ${models}
-      method: ${methods}
-      level: ${levels}
+      ml: ${method_levels}
     cmd: >-
       python scripts/train_probe.py
       dataset.name=${item.dataset.name}
       dataset.task_type=${item.task_type}
       model=${item.model.name}
       model.short_name=${item.model.short_name}
-      method=${item.method}
-      method.level=${item.level}
+      method=${item.ml.method}
+      method.level=${item.ml.level}
       seed=${seed}
     deps:
       - scripts/train_probe.py
@@ -137,42 +146,51 @@ stages:
       - seed
       - cv_folds
     outs:
-      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/${item.level}/: 
+      # 输出具体文件而不是整个目录，避免与 evaluate 的 metrics 路径重叠
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.ml.method}/${item.ml.level}/model.pkl:
+          persist: true
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.ml.method}/${item.ml.level}/train_metrics.json:
+          persist: true
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.ml.method}/${item.ml.level}/config.yaml:
           persist: true
 
   # ===========================================================================
   # Stage 4: 评估
   # ===========================================================================
-  # ⚠️ 变更: 增加了 level 矩阵参数，路径与 train_probe 保持一致
+  # ⚠️ 变更说明:
+  # - 使用 method_levels 组合替代独立的 methods × levels 矩阵
+  # - 依赖 train_probe 输出的具体文件 (model.pkl)
+  # - metrics/plots 输出具体文件，不会与 train_probe 的输出冲突
+  # ===========================================================================
   evaluate:
     matrix: 
       dataset: ${datasets}
       task_type: ${task_types}
       model: ${models}
-      method: ${methods}
-      level: ${levels}
+      ml: ${method_levels}
     cmd: >-
       python scripts/evaluate.py
       dataset.name=${item.dataset.name}
       dataset.task_type=${item.task_type}
       model=${item.model.name}
       model.short_name=${item.model.short_name}
-      method=${item.method}
-      method.level=${item.level}
+      method=${item.ml.method}
+      method.level=${item.ml.level}
       seed=${seed}
     deps: 
       - scripts/evaluate.py
-      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/${item.level}/
+      # 依赖具体的模型文件
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.ml.method}/${item.ml.level}/model.pkl
       - outputs/features/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/
       - outputs/features/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}_test/
       - outputs/splits/
     params:
       - seed
     metrics:
-      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/${item.level}/eval_results.json:
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.ml.method}/${item.ml.level}/eval_results.json:
           cache: false
     plots:
-      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/${item.level}/roc_curve.json:
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.ml.method}/${item.ml.level}/roc_curve.json:
           cache: false
           x: fpr
           y: tpr

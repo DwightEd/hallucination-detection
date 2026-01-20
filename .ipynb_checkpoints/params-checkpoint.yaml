@@ -2,7 +2,11 @@
 # DVC Parameters - 支持按任务类型和级别分别训练
 # =============================================================================
 # 修改这些值后运行 `dvc repro` 即可重新运行整个流水线
-# 支持矩阵交叉：datasets × task_types × models × methods × levels 的组合
+#
+# ⚠️ 重要变更 (v2.0):
+# - 移除了独立的 `levels` 参数
+# - 使用 `method_levels` 定义每个方法支持的 (method, level) 组合
+# - 这样确保只训练/评估方法实际支持的级别
 #
 # 目录结构:
 #   features: outputs/features/{dataset}/{model}/seed_{seed}/{task_type}/
@@ -18,8 +22,6 @@ datasets:
 # -----------------------------------------------------------------------------
 # 任务类型配置 (RAGTruth 有 3 种任务类型)
 # -----------------------------------------------------------------------------
-# 每种任务类型会分别提取特征、训练模型、评估
-# 最终汇总时会输出每个任务类型的 AUROC 和 AUPRC
 task_types:
   - QA
   - Summary
@@ -28,39 +30,87 @@ task_types:
 # -----------------------------------------------------------------------------
 # 模型配置
 # -----------------------------------------------------------------------------
-# short_name 必须与脚本输出的目录名一致
 models: 
   - name: llama2_7b_chat             
     short_name: Llama-2-7b-chat-hf
 
 # -----------------------------------------------------------------------------
-# 检测方法配置
+# 方法-级别组合配置 (⚠️ 核心变更)
 # -----------------------------------------------------------------------------
-# 特征提取会自动计算所有方法的特征需求并集
-# 确保一次提取可以满足所有方法的需要
+# 每个条目定义一个有效的 (method, level) 组合
+# 这些组合来源于各方法配置文件中的 level 字段:
+#   - level: sample  → 只添加 sample 组合
+#   - level: token   → 只添加 token 组合
+#   - level: both    → 添加 sample 和 token 两个组合
+#
+# 参考各方法的 level 配置:
+#   - lapeigvals: sample
+#   - lookback_lens: both
+#   - haloscope: sample
+#   - hsdmvaf: sample
+#   - semantic_entropy_probes: sample
+#   - tsv: (无配置，默认 sample)
+#   - hypergraph: both
+#   - act: sample
+#   - token_entropy: sample
+# -----------------------------------------------------------------------------
+method_levels:
+  # act - level: sample
+  # - method: act
+  #   level: sample
+  
+  # lapeigvals - level: sample
+  - method: lapeigvals
+    level: sample
+  
+  # lookback_lens - level: both
+  - method: lookback_lens
+    level: sample
+  - method: lookback_lens
+    level: token
+  
+  # haloscope - level: sample
+  - method: haloscope
+    level: sample
+  
+  # hsdmvaf - level: sample
+  - method: hsdmvaf
+    level: sample
+  
+  # semantic_entropy_probes - level: sample
+  - method: semantic_entropy_probes
+    level: sample
+  
+  # token_entropy - level: sample
+  - method: token_entropy
+    level: sample
+  
+  # tsv - 默认 sample
+  - method: tsv
+    level: sample
+  
+  # hypergraph - level: both
+  - method: hypergraph
+    level: sample
+  - method: hypergraph
+    level: token
+
+# -----------------------------------------------------------------------------
+# methods 列表 (用于特征提取)
+# -----------------------------------------------------------------------------
+# 特征提取只需要方法名称列表，会自动计算所有方法的特征需求并集
 methods: 
   - lapeigvals
   - lookback_lens
   - haloscope
   - hsdmvaf
   - semantic_entropy_probes
+  - token_entropy
   - tsv
   - hypergraph
 
 # methods_str: 用于 DVC 命令行传递的字符串格式
-# DVC 不支持直接在 cmd 中展开列表，需要预先格式化
-methods_str: "lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,tsv"
-
-# -----------------------------------------------------------------------------
-# 训练级别配置 (⚠️ 重要: 被 DVC 矩阵直接使用)
-# -----------------------------------------------------------------------------
-# 可选值: sample, token
-# - sample: 样本级别分类（每个样本一个分数）
-# - token: Token级别分类（每个token一个分数，用于定位幻觉span）
-
-levels:
-  - sample
-  - token
+methods_str: "lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,token_entropy,tsv"
 
 # -----------------------------------------------------------------------------
 # 特征提取配置 (内存优化)
@@ -80,8 +130,6 @@ cuda_devices: "0,1"
 # -----------------------------------------------------------------------------
 # 完整注意力控制
 # -----------------------------------------------------------------------------
-# hsdmvaf 方法需要 full_attention 以获得最佳效果
-# 设为 true 会显著增加内存使用
 allow_full_attention: true
 
 # -----------------------------------------------------------------------------
