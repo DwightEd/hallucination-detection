@@ -1,347 +1,164 @@
 #!/usr/bin/env python3
 """
-标记并重新提取被截断样本的基础特征和衍生特征。
+正确的截断检测脚本
 
-问题：某些样本因为 prompt_len >= max_length 导致 response 被完全截断，
-需要用更大的 max_length 重新提取这些样本的特征。
+检测逻辑：
+1. 从 answers.json 读取原始 prompt 和 response 文本
+2. 用 tokenizer 计算原始 token 长度
+3. 从 features_individual/*.pt 读取实际存储的 response_len（截断后的）
+4. 对比：如果 原始response_len > 存储的response_len，说明被截断了
 
-流程：
-1. 扫描所有样本，找出 prompt_len >= seq_len 的问题样本
-2. 将问题样本ID保存到文件
-3. 用更大的 max_length 重新提取这些样本的基础特征
-4. 计算衍生特征
-5. 更新合并的特征文件
-
-用法:
-    # 步骤1: 标记问题样本（不需要GPU）
-    python scripts/reextract.py mark \
-        --features-dir data/ragtruth/qwen2.5_7b/features/train \
-        --verbose
-
-    # 步骤2: 重新提取这些样本的特征 (需要GPU)
-    python scripts/reextract.py extract \
-        --features-dir data/ragtruth/qwen2.5_7b/features/train \
-        --samples-file truncated_samples.json \
-        --new-max-length 32768 \
-        --model Qwen/Qwen2.5-7B-Instruct \
-        --update-consolidated
-
-    # 一步完成（推荐）
-    python scripts/reextract.py all \
-        --features-dir data/ragtruth/qwen2.5_7b/features/train \
-        --new-max-length 32768 \
-        --model Qwen/Qwen2.5-7B-Instruct \
-        --update-consolidated \
-        --verbose
-        
-    # 不指定 max_length，使用自动计算的建议值
-    python scripts/reextract.py all \
-        --features-dir data/ragtruth/qwen2.5_7b/features/train \
-        --model Qwen/Qwen2.5-7B-Instruct \
-        --update-consolidated
+用法：
+    python scripts/reextract_truncated.py \
+        --features-dir outputs/features/.../train \
+        --model mistralai/Mistral-7B-Instruct-v0.3 \
+        --new-max-length 16384
 """
 
 import argparse
 import json
-import logging
-from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
-from dataclasses import dataclass, field, asdict
-import sys
-import os
-
 import torch
-from transformers import AutoTokenizer
+from pathlib import Path
+from typing import List, Dict, Tuple, Any, Optional
+from dataclasses import dataclass
+import logging
+import sys
 
 logging.basicConfig(
     level=logging.INFO,
-    format='[%(asctime)s][%(name)s][%(levelname)s] - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    format='[%(asctime)s] %(message)s',
+    datefmt='%H:%M:%S'
 )
 logger = logging.getLogger(__name__)
 
 
 def sanitize_sample_id(sample_id: str) -> str:
-    """清理样本ID，使其可以安全用作文件名"""
+    """清理样本ID用于文件名"""
     return str(sample_id).replace("/", "_").replace("\\", "_").replace(":", "_")
 
 
 @dataclass
-class TruncatedSampleInfo:
-    """被截断样本的信息"""
+class TruncatedSample:
     sample_id: str
-    original_prompt_len: int  # 原始 prompt token 数
-    original_response_len: int  # 原始 response token 数
-    original_total_len: int  # 原始总长度
-    current_seq_len: int  # 当前（截断后的）序列长度
-    issue_type: str  # "prompt_truncated", "response_truncated", "response_too_short"
+    original_prompt_len: int
+    original_response_len: int
+    stored_prompt_len: int
+    stored_response_len: int
     
     @property
-    def min_required_length(self) -> int:
-        """计算需要的最小 max_length"""
-        return self.original_total_len + 10  # 加一点余量
+    def is_truncated(self) -> bool:
+        return self.stored_response_len < self.original_response_len
 
 
-def load_individual_feature(features_dir: Path, sample_id: str) -> Optional[Dict]:
-    """加载 individual .pt 文件"""
+def detect_truncated_samples(
+    features_dir: Path,
+    model_name: str,
+    min_response_threshold: int = 5,
+) -> List[TruncatedSample]:
+    """
+    检测被截断的样本
+    
+    对比原始文本的 token 长度与实际存储的长度
+    """
+    from transformers import AutoTokenizer
+    
+    logger.info(f"加载 tokenizer: {model_name}")
+    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+    
+    # 加载 answers.json（包含原始文本）
+    answers_file = features_dir / "answers.json"
+    if not answers_file.exists():
+        logger.error(f"answers.json 不存在: {answers_file}")
+        return []
+    
+    with open(answers_file, 'r', encoding='utf-8') as f:
+        answers = json.load(f)
+    logger.info(f"加载 {len(answers)} 个样本")
+    
+    # 检查 features_individual 目录
     individual_dir = features_dir / "features_individual"
     if not individual_dir.exists():
-        return None
+        logger.error(f"features_individual 目录不存在: {individual_dir}")
+        return []
     
-    safe_id = sanitize_sample_id(sample_id)
-    pt_file = individual_dir / f"{safe_id}.pt"
-    
-    if not pt_file.exists():
-        return None
-    
-    try:
-        data = torch.load(pt_file, map_location='cpu', weights_only=False)
-        return data
-    except Exception as e:
-        logger.warning(f"Failed to load {pt_file}: {e}")
-        return None
-
-
-def get_attention_seq_len(features_data: Dict) -> Optional[int]:
-    """从特征数据中获取注意力矩阵的序列长度"""
-    feat = features_data.get('features', {})
-    
-    for key in ['full_attentions', 'attn_diags', 'laplacian_diags', 'attn_entropy']:
-        tensor = feat.get(key)
-        if tensor is not None and isinstance(tensor, torch.Tensor):
-            return tensor.shape[-1]
-    
-    return None
-
-
-def load_answers_json(features_dir: Path) -> List[Dict]:
-    """加载 answers.json"""
-    answers_path = features_dir / "answers.json"
-    if not answers_path.exists():
-        raise FileNotFoundError(f"answers.json not found: {answers_path}")
-    
-    with open(answers_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-
-def mark_truncated_samples(
-    features_dir: Path, 
-    verbose: bool = False,
-    model_name: Optional[str] = None,
-) -> List[TruncatedSampleInfo]:
-    """
-    扫描所有样本，标记被截断的问题样本。
-    
-    关键逻辑：
-    - answers.json 保存了完整的原始文本 (prompt, response)
-    - 但 prompt_len 和 response_len 是截断后的 token 数
-    - 需要用 tokenizer 从原始文本重新计算真实长度
-    
-    问题样本包括：
-    1. 真实总长度 > 当前 seq_len (被截断)
-    2. stored_response_len <= 1 (response 几乎被完全截断)
-    
-    Args:
-        features_dir: 特征目录
-        verbose: 详细输出
-        model_name: 模型名称，用于加载 tokenizer 计算真实长度
-    """
-    logger.info(f"Scanning samples in {features_dir}...")
-    
-    # 尝试加载 tokenizer
-    tokenizer = None
-    if model_name:
-        try:
-            logger.info(f"Loading tokenizer: {model_name}")
-            tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-            logger.info("Tokenizer loaded successfully")
-        except Exception as e:
-            logger.warning(f"Failed to load tokenizer: {e}. Will use stored lengths.")
-    else:
-        # 尝试从 metadata.json 或 config.yaml 获取模型名称
-        metadata_path = features_dir / "metadata.json"
-        config_path = features_dir / "config.yaml"
-        
-        if metadata_path.exists():
-            try:
-                with open(metadata_path) as f:
-                    metadata = json.load(f)
-                model_name = metadata.get("config", {}).get("model", {}).get("name")
-            except:
-                pass
-        
-        if not model_name and config_path.exists():
-            try:
-                from omegaconf import OmegaConf
-                cfg = OmegaConf.load(config_path)
-                model_name = cfg.get("model", {}).get("name")
-            except:
-                pass
-        
-        if model_name:
-            try:
-                logger.info(f"Auto-detected model: {model_name}")
-                tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-                logger.info("Tokenizer loaded successfully")
-            except Exception as e:
-                logger.warning(f"Failed to load tokenizer: {e}. Will use stored lengths.")
-    
-    answers = load_answers_json(features_dir)
     truncated_samples = []
+    checked = 0
     
-    for i, answer in enumerate(answers):
-        if (i + 1) % 1000 == 0:
-            logger.info(f"Progress: {i + 1}/{len(answers)}")
-        
+    for answer in answers:
         sample_id = answer['id']
+        prompt = answer.get('prompt', '')
+        response = answer.get('response', '')
         
-        # 从 individual 文件获取实际数据
-        features_data = load_individual_feature(features_dir, sample_id)
+        # 计算原始 token 长度
+        original_prompt_len = len(tokenizer.encode(prompt, add_special_tokens=True))
+        original_response_len = len(tokenizer.encode(response, add_special_tokens=False))
         
-        if features_data is None:
-            if verbose:
-                logger.warning(f"Sample {sample_id}: individual file not found")
+        # 读取存储的长度
+        safe_id = sanitize_sample_id(sample_id)
+        pt_file = individual_dir / f"{safe_id}.pt"
+        
+        if not pt_file.exists():
+            logger.warning(f"特征文件不存在: {pt_file}")
             continue
         
-        feat = features_data.get('features', {})
-        
-        # 获取存储的（截断后的）prompt_len 和 response_len
-        stored_prompt_len = feat.get('prompt_len', 0)
-        stored_response_len = feat.get('response_len', 0)
-        
-        # 获取实际序列长度（从注意力矩阵）
-        seq_len = get_attention_seq_len(features_data)
-        
-        if seq_len is None:
-            if verbose:
-                logger.warning(f"Sample {sample_id}: no attention data")
+        try:
+            data = torch.load(pt_file, map_location='cpu', weights_only=False)
+            feat = data.get('features', data)
+            stored_prompt_len = feat.get('prompt_len', 0) or 0
+            stored_response_len = feat.get('response_len', 0) or 0
+        except Exception as e:
+            logger.warning(f"无法读取 {pt_file}: {e}")
             continue
         
-        # 计算真实的原始长度
-        if tokenizer is not None and 'prompt' in answer and 'response' in answer:
-            # 从原始文本计算真实 token 长度
-            prompt_tokens = tokenizer.encode(answer['prompt'], add_special_tokens=True)
-            response_tokens = tokenizer.encode(answer['response'], add_special_tokens=False)
-            original_prompt_len = len(prompt_tokens)
-            original_response_len = len(response_tokens)
-        else:
-            # 回退：使用存储的值（但这可能是截断后的值）
-            original_prompt_len = stored_prompt_len
-            original_response_len = stored_response_len
+        checked += 1
+        if checked % 500 == 0:
+            logger.info(f"  进度: {checked}/{len(answers)}")
         
-        original_total_len = original_prompt_len + original_response_len
+        # 判断是否被截断或 response 太短
+        is_truncated = stored_response_len < original_response_len
+        is_too_short = stored_response_len <= min_response_threshold
         
-        # 判断问题类型
-        issue_type = None
-        
-        if original_total_len > seq_len:
-            # 真实长度超过当前序列长度，说明被截断了
-            if original_prompt_len >= seq_len:
-                # prompt 本身就超过了 seq_len，response 完全被截断
-                issue_type = "prompt_exceeds_seq"
-            elif stored_response_len <= 1:
-                # response 几乎被完全截断
-                issue_type = "response_too_short"
-            else:
-                # response 被部分截断
-                issue_type = "response_truncated"
-        elif stored_response_len <= 1 and original_response_len > 1:
-            # 存储的 response_len 很短，但原始 response 应该更长
-            issue_type = "response_too_short"
-        
-        if issue_type:
-            info = TruncatedSampleInfo(
+        if is_truncated or is_too_short:
+            truncated_samples.append(TruncatedSample(
                 sample_id=sample_id,
                 original_prompt_len=original_prompt_len,
                 original_response_len=original_response_len,
-                original_total_len=original_total_len,
-                current_seq_len=seq_len,
-                issue_type=issue_type,
-            )
-            truncated_samples.append(info)
-            
-            if verbose:
-                logger.info(
-                    f"Found truncated sample: {sample_id} "
-                    f"(type={issue_type}, original_total={original_total_len}, seq_len={seq_len}, "
-                    f"stored_response_len={stored_response_len})"
-                )
+                stored_prompt_len=stored_prompt_len,
+                stored_response_len=stored_response_len,
+            ))
+    
+    logger.info(f"检查完成: {checked} 个样本")
+    logger.info(f"发现问题样本: {len(truncated_samples)}")
     
     return truncated_samples
 
 
-def save_truncated_samples_list(
-    samples: List[TruncatedSampleInfo],
-    output_path: Path
-) -> None:
-    """保存问题样本列表"""
-    data = {
-        "total_truncated": len(samples),
-        "by_type": {},
-        "max_required_length": max((s.min_required_length for s in samples), default=0),
-        "samples": [asdict(s) for s in samples]
-    }
-    
-    # 按类型统计
-    for s in samples:
-        data["by_type"][s.issue_type] = data["by_type"].get(s.issue_type, 0) + 1
-    
-    with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-    
-    logger.info(f"Saved {len(samples)} truncated samples to {output_path}")
-    logger.info(f"By type: {data['by_type']}")
-    logger.info(f"Max required length: {data['max_required_length']}")
-
-
-def load_truncated_samples_list(input_path: Path) -> Tuple[List[str], int]:
-    """加载问题样本列表，返回 (sample_ids, max_required_length)"""
-    with open(input_path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    
-    sample_ids = [s['sample_id'] for s in data['samples']]
-    max_required_length = data.get('max_required_length', 8192)
-    
-    return sample_ids, max_required_length
-
-
 def reextract_samples(
     features_dir: Path,
-    sample_ids: List[str],
-    new_max_length: int,
+    truncated_samples: List[TruncatedSample],
+    answers: List[Dict],
     model_name: str,
-    dataset_name: str = "ragtruth",
-    split_name: str = "train",
-    batch_size: int = 1,
+    new_max_length: int,
     device: str = "cuda",
-) -> Dict[str, int]:
-    """
-    重新提取指定样本的特征。
-    
-    Returns:
-        统计信息 {"success": n, "failed": n}
-    """
-    # 延迟导入，避免在只标记时加载大量依赖
-    from omegaconf import OmegaConf
-    
+) -> Tuple[int, int]:
+    """重新提取被截断的样本"""
     from src.core import Sample, ModelConfig, FeaturesConfig, sanitize_sample_id
     from src.models import get_model, unload_all_models
     from src.features import create_extractor_from_requirements
     from src.utils import clear_gpu_memory
     from utils.feature_manager import create_feature_manager
     
-    logger.info(f"Re-extracting {len(sample_ids)} samples with max_length={new_max_length}")
+    individual_dir = features_dir / "features_individual"
+    consolidated_dir = features_dir / "features"
     
-    # 1. 加载原始样本数据
-    answers = load_answers_json(features_dir)
+    # 构建待提取样本
     answers_by_id = {a['id']: a for a in answers}
+    truncated_ids = {s.sample_id for s in truncated_samples}
     
     samples_to_extract = []
-    for sid in sample_ids:
+    for sid in truncated_ids:
         if sid not in answers_by_id:
-            logger.warning(f"Sample {sid} not found in answers.json")
             continue
-        
         ans = answers_by_id[sid]
         samples_to_extract.append(Sample(
             id=sid,
@@ -354,24 +171,16 @@ def reextract_samples(
             }
         ))
     
-    if not samples_to_extract:
-        logger.error("No samples to extract!")
-        return {"success": 0, "failed": 0}
+    logger.info(f"重新提取 {len(samples_to_extract)} 个样本 (max_length={new_max_length})")
     
-    logger.info(f"Loaded {len(samples_to_extract)} samples for re-extraction")
-    
-    # 2. 创建模型和提取器
-    model_config = ModelConfig(
-        name=model_name,
-        device=device,
-    )
-    
-    logger.info(f"Loading model: {model_name}")
+    # 加载模型
+    logger.info(f"加载模型: {model_name}")
+    model_config = ModelConfig(name=model_name, device=device)
     model = get_model(model_config)
     
-    # 创建特征管理器（hypergraph 需要 full_attention）
+    # 创建特征提取器
     feature_manager = create_feature_manager(
-        methods=["hypergraph"],
+        methods=["hypergraph", "haloscope", "lapeigvals", "lookback_lens", "hsdmvaf"],
         allow_full_attention=True,
     )
     
@@ -380,8 +189,11 @@ def reextract_samples(
         max_length=new_max_length,
         attention_enabled=True,
         attention_layers="all",
+        attention_storage="diag",
+        store_full_attention=True,
         hidden_states_enabled=True,
-        hidden_states_layers="-4,-3,-2,-1",
+        hidden_states_layers="all",
+        hidden_states_pooling="none",
         token_probs_enabled=True,
     )
     
@@ -392,27 +204,19 @@ def reextract_samples(
         allow_full_attention=True,
     )
     
-    # 3. 提取特征
-    individual_dir = features_dir / "features_individual"
+    # 提取特征
     individual_dir.mkdir(exist_ok=True)
-    
-    stats = {"success": 0, "failed": 0}
+    extracted_features = {}
+    success_count = 0
+    failed_count = 0
     
     for i, sample in enumerate(samples_to_extract):
-        logger.info(f"Processing [{i+1}/{len(samples_to_extract)}]: {sample.id}")
+        logger.info(f"  [{i+1}/{len(samples_to_extract)}] {sample.id}")
         
         try:
-            # 提取特征
             features = extractor.extract(sample)
             
-            # 验证
-            if features.prompt_len >= new_max_length:
-                logger.warning(
-                    f"Sample {sample.id}: prompt_len ({features.prompt_len}) >= max_length ({new_max_length}). "
-                    f"Need even larger max_length!"
-                )
-            
-            # 构建保存数据
+            # 构建特征字典
             features_dict = {
                 "sample_id": features.sample_id,
                 "prompt_len": features.prompt_len,
@@ -421,7 +225,6 @@ def reextract_samples(
                 "layers": features.layers,
             }
             
-            # 添加各类特征
             for attr in ['attn_diags', 'attn_row_sums', 'laplacian_diags', 'attn_entropy',
                          'hidden_states', 'token_probs', 'token_entropy']:
                 value = getattr(features, attr, None)
@@ -436,330 +239,216 @@ def reextract_samples(
             if features.hallucination_token_spans is not None:
                 features_dict['hallucination_token_spans'] = features.hallucination_token_spans
             
-            # 保存到 individual 文件
+            # 保存到 features_individual/
             save_data = {
+                "sample_id": sample.id,
                 "features": features_dict,
-                "metadata": {
-                    "model_name": model_name,
-                    "max_length": new_max_length,
-                    "reextracted": True,
-                }
+                "metadata": {"model_name": model_name, "max_length": new_max_length, "reextracted": True}
             }
             
             safe_id = sanitize_sample_id(sample.id)
             pt_file = individual_dir / f"{safe_id}.pt"
             torch.save(save_data, pt_file)
             
-            # 更新 answers.json 中的 prompt_len 和 response_len
-            if sample.id in answers_by_id:
-                answers_by_id[sample.id]['prompt_len'] = features.prompt_len
-                answers_by_id[sample.id]['response_len'] = features.response_len
-            
-            stats["success"] += 1
-            logger.info(
-                f"  ✓ Extracted: prompt_len={features.prompt_len}, "
-                f"response_len={features.response_len}, "
-                f"total={features.prompt_len + features.response_len}"
-            )
+            extracted_features[sample.id] = features_dict
+            logger.info(f"    ✓ prompt={features.prompt_len}, response={features.response_len}")
+            success_count += 1
             
             del features
             
         except Exception as e:
-            logger.error(f"  ✗ Failed to extract {sample.id}: {e}")
-            stats["failed"] += 1
+            logger.error(f"    ✗ 失败: {e}")
+            failed_count += 1
         
-        # 定期清理内存
         if (i + 1) % 10 == 0:
             clear_gpu_memory()
     
-    # 4. 保存更新后的 answers.json
-    answers_path = features_dir / "answers.json"
-    updated_answers = [answers_by_id[a['id']] for a in answers if a['id'] in answers_by_id]
-    
-    with open(answers_path, 'w', encoding='utf-8') as f:
-        json.dump(updated_answers, f, indent=2, ensure_ascii=False)
-    
-    logger.info(f"Updated answers.json with new prompt_len/response_len values")
-    
-    # 5. 清理
+    # 清理模型
     unload_all_models()
     clear_gpu_memory()
     
-    return stats
+    logger.info(f"提取完成: 成功 {success_count}, 失败 {failed_count}")
+    
+    # 更新合并特征文件
+    if consolidated_dir.exists() and extracted_features:
+        logger.info("更新合并特征文件...")
+        update_consolidated_features(consolidated_dir, individual_dir, extracted_features)
+    
+    return success_count, failed_count
 
 
 def update_consolidated_features(
-    features_dir: Path,
-    sample_ids: List[str],
-) -> None:
-    """更新合并的特征文件"""
-    logger.info("Updating consolidated features...")
+    consolidated_dir: Path,
+    individual_dir: Path,
+    extracted_features: Dict[str, Dict],
+):
+    """更新 features/ 目录下的合并特征文件"""
+    # 常规特征
+    regular_features = [
+        "attn_diags", "laplacian_diags", "attn_entropy",
+        "token_probs", "token_entropy",
+        "hallucination_labels", "hallucination_token_spans",
+    ]
     
-    consolidated_dir = features_dir / "features"
-    if not consolidated_dir.exists():
-        consolidated_dir.mkdir(exist_ok=True)
-    
-    # 需要更新的特征类型
-    feature_mapping = {
-        "attn_diags": "attn_diags.pt",
-        "laplacian_diags": "laplacian_diags.pt",
-        "attn_entropy": "attn_entropy.pt",
-        "attn_row_sums": "attn_row_sums.pt",
-        "full_attentions": "full_attentions.pt",  # hypergraph 需要
-        "hidden_states": "hidden_states.pt",      # haloscope 等需要
-        "token_probs": "token_probs.pt",
-        "token_entropy": "token_entropy.pt",
-        "hallucination_labels": "hallucination_labels.pt",
-    }
-    
-    # 加载需要更新的样本数据
-    updated_features = {}
-    for sid in sample_ids:
-        data = load_individual_feature(features_dir, sid)
-        if data:
-            updated_features[sid] = data.get('features', {})
-    
-    if not updated_features:
-        logger.warning("No features to update")
-        return
-    
-    # 更新每个特征文件
-    for feature_key, filename in feature_mapping.items():
-        filepath = consolidated_dir / filename
+    for feat_key in regular_features:
+        feat_file = consolidated_dir / f"{feat_key}.pt"
+        if not feat_file.exists():
+            continue
         
-        # 加载现有数据或创建新的
-        if filepath.exists():
-            try:
-                feature_data = torch.load(filepath, weights_only=False)
-                if not isinstance(feature_data, dict):
-                    feature_data = {}
-            except:
-                feature_data = {}
-        else:
-            feature_data = {}
+        samples_with_feat = [
+            (sid, data[feat_key]) 
+            for sid, data in extracted_features.items() 
+            if feat_key in data and data[feat_key] is not None
+        ]
         
-        # 更新
-        updated_count = 0
-        for sid, feat in updated_features.items():
-            if feature_key in feat:
-                feature_data[sid] = feat[feature_key]
-                updated_count += 1
+        if not samples_with_feat:
+            continue
         
-        # 保存
-        if updated_count > 0:
-            torch.save(feature_data, filepath)
-            logger.info(f"Updated {filename}: {updated_count} samples")
-
-
-def cmd_mark(args):
-    """标记命令"""
-    features_dir = Path(args.features_dir)
+        try:
+            feat_data = torch.load(feat_file, map_location='cpu', weights_only=False)
+            if not isinstance(feat_data, dict):
+                feat_data = {}
+        except:
+            feat_data = {}
+        
+        for sid, value in samples_with_feat:
+            feat_data[sid] = value
+        
+        torch.save(feat_data, feat_file)
+        logger.info(f"  更新 {feat_key}.pt: {len(samples_with_feat)} 个样本")
     
-    if not features_dir.exists():
-        logger.error(f"Features directory not found: {features_dir}")
-        return 1
+    # 大特征索引
+    large_features = ["hidden_states", "full_attentions"]
     
-    # 标记问题样本（传入模型名称用于计算真实长度）
-    model_name = getattr(args, 'model', None)
-    truncated_samples = mark_truncated_samples(
-        features_dir, 
-        verbose=args.verbose,
-        model_name=model_name,
-    )
-    
-    if not truncated_samples:
-        logger.info("✓ No truncated samples found!")
-        return 0
-    
-    # 保存列表
-    output_path = Path(args.output) if args.output else features_dir / "truncated_samples.json"
-    save_truncated_samples_list(truncated_samples, output_path)
-    
-    # 打印摘要
-    print("\n" + "=" * 60)
-    print("截断样本摘要")
-    print("=" * 60)
-    print(f"发现问题样本: {len(truncated_samples)}")
-    print(f"建议的最小 max_length: {max(s.min_required_length for s in truncated_samples)}")
-    print(f"问题样本列表已保存到: {output_path}")
-    print("=" * 60)
-    
-    return 0
-
-
-def cmd_extract(args):
-    """重新提取命令"""
-    features_dir = Path(args.features_dir)
-    samples_file = Path(args.samples_file)
-    
-    if not features_dir.exists():
-        logger.error(f"Features directory not found: {features_dir}")
-        return 1
-    
-    if not samples_file.exists():
-        logger.error(f"Samples file not found: {samples_file}")
-        return 1
-    
-    # 加载问题样本列表
-    sample_ids, suggested_max_length = load_truncated_samples_list(samples_file)
-    
-    new_max_length = args.new_max_length or suggested_max_length
-    logger.info(f"Will use max_length={new_max_length}")
-    
-    if new_max_length < suggested_max_length:
-        logger.warning(
-            f"Specified max_length ({new_max_length}) < suggested ({suggested_max_length}). "
-            f"Some samples may still be truncated!"
-        )
-    
-    # 重新提取
-    stats = reextract_samples(
-        features_dir=features_dir,
-        sample_ids=sample_ids,
-        new_max_length=new_max_length,
-        model_name=args.model,
-        device=args.device,
-    )
-    
-    logger.info(f"Extraction complete: {stats['success']} success, {stats['failed']} failed")
-    
-    # 更新合并的特征文件
-    if args.update_consolidated:
-        update_consolidated_features(features_dir, sample_ids)
-    
-    return 0 if stats['failed'] == 0 else 1
-
-
-def cmd_all(args):
-    """一步完成：标记 + 提取"""
-    features_dir = Path(args.features_dir)
-    
-    if not features_dir.exists():
-        logger.error(f"Features directory not found: {features_dir}")
-        return 1
-    
-    # 1. 标记问题样本（使用同一个模型名称）
-    logger.info("Step 1: Marking truncated samples...")
-    truncated_samples = mark_truncated_samples(
-        features_dir, 
-        verbose=args.verbose,
-        model_name=args.model,  # 使用提取时的模型来计算真实长度
-    )
-    
-    if not truncated_samples:
-        logger.info("✓ No truncated samples found! Nothing to do.")
-        return 0
-    
-    # 保存列表
-    samples_file = features_dir / "truncated_samples.json"
-    save_truncated_samples_list(truncated_samples, samples_file)
-    
-    # 2. 确定 max_length
-    suggested_max_length = max(s.min_required_length for s in truncated_samples)
-    new_max_length = args.new_max_length or suggested_max_length
-    
-    if new_max_length < suggested_max_length:
-        logger.warning(
-            f"Specified max_length ({new_max_length}) < suggested ({suggested_max_length}). "
-            f"Some samples may still be truncated!"
-        )
-    
-    # 3. 重新提取
-    logger.info(f"\nStep 2: Re-extracting {len(truncated_samples)} samples with max_length={new_max_length}...")
-    
-    sample_ids = [s.sample_id for s in truncated_samples]
-    
-    stats = reextract_samples(
-        features_dir=features_dir,
-        sample_ids=sample_ids,
-        new_max_length=new_max_length,
-        model_name=args.model,
-        device=args.device,
-    )
-    
-    logger.info(f"Extraction complete: {stats['success']} success, {stats['failed']} failed")
-    
-    # 4. 更新合并的特征文件
-    if args.update_consolidated:
-        logger.info("\nStep 3: Updating consolidated features...")
-        update_consolidated_features(features_dir, sample_ids)
-    
-    # 打印最终摘要
-    print("\n" + "=" * 60)
-    print("重新提取完成")
-    print("=" * 60)
-    print(f"问题样本数: {len(truncated_samples)}")
-    print(f"成功提取: {stats['success']}")
-    print(f"失败: {stats['failed']}")
-    print(f"使用的 max_length: {new_max_length}")
-    print("=" * 60)
-    
-    return 0 if stats['failed'] == 0 else 1
+    for feat_key in large_features:
+        index_file = consolidated_dir / f"{feat_key}_index.json"
+        if not index_file.exists():
+            continue
+        
+        samples_with_feat = [
+            sid for sid, data in extracted_features.items() 
+            if feat_key in data and data[feat_key] is not None
+        ]
+        
+        if not samples_with_feat:
+            continue
+        
+        try:
+            with open(index_file, 'r') as f:
+                index_data = json.load(f)
+            index = index_data.get('index', {})
+        except:
+            index = {}
+        
+        for sid in samples_with_feat:
+            safe_id = sanitize_sample_id(sid)
+            index[sid] = str(individual_dir / f"{safe_id}.pt")
+        
+        index_data['index'] = index
+        index_data['sample_count'] = len(index)
+        with open(index_file, 'w') as f:
+            json.dump(index_data, f, indent=2)
+        logger.info(f"  更新 {feat_key}_index.json: {len(samples_with_feat)} 个样本")
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="标记并重新提取被截断样本的特征",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    
-    subparsers = parser.add_subparsers(dest='command', help='子命令')
-    
-    # mark 子命令
-    mark_parser = subparsers.add_parser('mark', help='标记被截断的样本')
-    mark_parser.add_argument('--features-dir', '-d', type=str, required=True,
-                            help='特征目录路径')
-    mark_parser.add_argument('--output', '-o', type=str, default=None,
-                            help='输出文件路径 (默认: features_dir/truncated_samples.json)')
-    mark_parser.add_argument('--model', '-m', type=str, default=None,
-                            help='模型名称（用于加载tokenizer计算真实长度，不指定则自动从config检测）')
-    mark_parser.add_argument('--verbose', '-v', action='store_true',
-                            help='详细输出')
-    
-    # extract 子命令
-    extract_parser = subparsers.add_parser('extract', help='重新提取指定样本的特征')
-    extract_parser.add_argument('--features-dir', '-d', type=str, required=True,
-                               help='特征目录路径')
-    extract_parser.add_argument('--samples-file', '-s', type=str, required=True,
-                               help='问题样本列表文件')
-    extract_parser.add_argument('--new-max-length', '-l', type=int, default=None,
-                               help='新的 max_length (默认使用建议值)')
-    extract_parser.add_argument('--model', '-m', type=str, required=True,
-                               help='模型名称或路径')
-    extract_parser.add_argument('--device', type=str, default='cuda',
-                               help='设备 (默认: cuda)')
-    extract_parser.add_argument('--update-consolidated', action='store_true',
-                               help='同时更新合并的特征文件')
-    
-    # all 子命令
-    all_parser = subparsers.add_parser('all', help='一步完成：标记 + 提取')
-    all_parser.add_argument('--features-dir', '-d', type=str, required=True,
-                           help='特征目录路径')
-    all_parser.add_argument('--new-max-length', '-l', type=int, default=None,
-                           help='新的 max_length (默认使用建议值)')
-    all_parser.add_argument('--model', '-m', type=str, required=True,
-                           help='模型名称或路径')
-    all_parser.add_argument('--device', type=str, default='cuda',
-                           help='设备 (默认: cuda)')
-    all_parser.add_argument('--update-consolidated', action='store_true',
-                           help='同时更新合并的特征文件')
-    all_parser.add_argument('--verbose', '-v', action='store_true',
-                           help='详细输出')
+    parser = argparse.ArgumentParser(description="检测并重新提取被截断的样本")
+    parser.add_argument('--features-dir', '-d', type=str, required=True,
+                       help='特征目录路径')
+    parser.add_argument('--model', '-m', type=str, required=True,
+                       help='模型名称')
+    parser.add_argument('--new-max-length', '-l', type=int, default=16384,
+                       help='新的 max_length (默认: 16384)')
+    parser.add_argument('--min-response-threshold', '-t', type=int, default=5,
+                       help='response_len <= 此值也视为问题 (默认: 5)')
+    parser.add_argument('--device', type=str, default='cuda',
+                       help='设备 (默认: cuda)')
+    parser.add_argument('--detect-only', action='store_true',
+                       help='只检测，不重新提取')
     
     args = parser.parse_args()
+    features_dir = Path(args.features_dir)
     
-    if args.command is None:
-        parser.print_help()
+    if not features_dir.exists():
+        logger.error(f"目录不存在: {features_dir}")
         return 1
     
-    if args.command == 'mark':
-        return cmd_mark(args)
-    elif args.command == 'extract':
-        return cmd_extract(args)
-    elif args.command == 'all':
-        return cmd_all(args)
+    # 步骤 1: 检测
+    logger.info("=" * 60)
+    logger.info("步骤 1: 检测被截断或 response 过短的样本")
+    logger.info("=" * 60)
     
-    return 0
+    truncated = detect_truncated_samples(
+        features_dir=features_dir,
+        model_name=args.model,
+        min_response_threshold=args.min_response_threshold,
+    )
+    
+    if not truncated:
+        logger.info("✅ 没有发现问题样本")
+        return 0
+    
+    # 打印详情
+    print("\n问题样本列表:")
+    print("-" * 80)
+    print(f"{'sample_id':<40} {'orig_resp':<10} {'stored_resp':<12} {'状态'}")
+    print("-" * 80)
+    for s in sorted(truncated, key=lambda x: x.stored_response_len)[:30]:
+        status = "截断" if s.is_truncated else "原始就短"
+        print(f"{s.sample_id:<40} {s.original_response_len:<10} {s.stored_response_len:<12} {status}")
+    if len(truncated) > 30:
+        print(f"... 还有 {len(truncated) - 30} 个")
+    print("-" * 80)
+    
+    # 保存列表
+    output_file = features_dir / "truncated_samples.json"
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump({
+            'count': len(truncated),
+            'samples': [
+                {
+                    'sample_id': s.sample_id,
+                    'original_prompt_len': s.original_prompt_len,
+                    'original_response_len': s.original_response_len,
+                    'stored_prompt_len': s.stored_prompt_len,
+                    'stored_response_len': s.stored_response_len,
+                    'is_truncated': s.is_truncated,
+                }
+                for s in truncated
+            ]
+        }, f, indent=2, ensure_ascii=False)
+    logger.info(f"问题样本列表已保存到: {output_file}")
+    
+    if args.detect_only:
+        logger.info("检测完成 (--detect-only 模式)")
+        return 0
+    
+    # 步骤 2: 重新提取
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("步骤 2: 重新提取问题样本")
+    logger.info("=" * 60)
+    
+    # 加载 answers
+    answers_file = features_dir / "answers.json"
+    with open(answers_file, 'r', encoding='utf-8') as f:
+        answers = json.load(f)
+    
+    success, failed = reextract_samples(
+        features_dir=features_dir,
+        truncated_samples=truncated,
+        answers=answers,
+        model_name=args.model,
+        new_max_length=args.new_max_length,
+        device=args.device,
+    )
+    
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info(f"✅ 完成: 成功 {success}, 失败 {failed}")
+    logger.info("=" * 60)
+    
+    return 0 if failed == 0 else 1
 
 
 if __name__ == "__main__":

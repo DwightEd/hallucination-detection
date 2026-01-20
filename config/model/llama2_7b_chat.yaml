@@ -1,0 +1,37 @@
+# =============================================================================
+# Llama-2-7b-chat-hf Configuration
+# =============================================================================
+# Llama 2 7B Chat 模型配置
+# 模型架构：32层，32头，4096维隐藏层
+# =============================================================================
+
+name: /share/home/tm902089733300000/a903202310/lys/models/meta-llama/Llama-2-7b-chat-hf
+
+# 短名称（用于输出目录名）
+short_name: Llama-2-7b-chat-hf
+
+# 模型架构参数
+n_layers: 32
+n_heads: 32
+hidden_size: 4096
+context_size: 4096  # Llama 2 默认上下文窗口
+
+# 加载参数
+attn_implementation: eager  # 必须为 eager 以提取注意力
+dtype: bfloat16
+trust_remote_code: false
+load_in_4bit: false
+load_in_8bit: false
+
+# 分词器配置
+tokenizer_name: ${model.name}
+tokenizer_padding_side: left
+
+# =============================================================================
+# GPU 配置 - 自动适配
+# =============================================================================
+multi_gpu:
+  enabled: true
+  strategy: auto
+  # 使用 90% 显存，自动适配任意 GPU 数量和显存大小
+  memory_fraction: 0.9

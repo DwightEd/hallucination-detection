@@ -28,9 +28,9 @@ set -e  # 遇到错误立即退出
 # 配置参数
 # =============================================================================
 DATASET="ragtruth"
-MODEL="Llama-2-7b-chat-hf"
+MODEL="Mistral-7B-Instruct-v0.3"
 SEED=42
-METHODS="lapeigvals lookback_lens hsdmvaf semantic_entropy_probes tsv"
+METHODS="semantic_entropy_probes tsv"
 
 # 所有任务类型
 ALL_TASKS="QA Summary Data2txt"
