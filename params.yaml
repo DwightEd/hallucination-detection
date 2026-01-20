@@ -102,7 +102,7 @@ method_levels:
 methods: 
   - lapeigvals
   - lookback_lens
-  - haloscope
+  # - haloscope
   - hsdmvaf
   - semantic_entropy_probes
   - token_entropy

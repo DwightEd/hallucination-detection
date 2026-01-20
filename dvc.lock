@@ -33,7 +33,7 @@ stages:
       model=llama2_7b_chat model.short_name=Llama-2-7b-chat-hf 
       features.mode=teacher_forcing features.max_length=10000 
       features.batch_size=4 seed=42 
-      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,tsv]
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,token_entropy,tsv]
       allow_full_attention=true
     deps:
     - path: config/
@@ -52,9 +52,9 @@ stages:
       size: 6848
     - path: src/
       hash: md5
-      md5: 549e48e1cbfd5705fb0ff77289e081d7.dir
-      size: 1308002
-      nfiles: 112
+      md5: 2b84c3ef83f36d4e26976428c01cbc6b.dir
+      size: 1344801
+      nfiles: 114
     - path: utils/
       hash: md5
       md5: 34876b4220264e295e9c9a54aefda19c.dir
@@ -68,16 +68,16 @@ stages:
         methods:
         - lapeigvals
         - lookback_lens
-        - haloscope
         - hsdmvaf
         - semantic_entropy_probes
+        - token_entropy
         - tsv
         - hypergraph
         seed: 42
     outs:
     - path: outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/
       hash: md5
-      md5: 8c5f03e65d18b838799dbb810e5f0f73.dir
+      md5: 65557f19db2b6609d69666a0d0aa497b.dir
       size: 747667924296
       nfiles: 815
   generate_activations@dataset0-Summary-model0:
@@ -86,7 +86,7 @@ stages:
       model=llama2_7b_chat model.short_name=Llama-2-7b-chat-hf 
       features.mode=teacher_forcing features.max_length=10000 
       features.batch_size=4 seed=42 
-      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,tsv]
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,token_entropy,tsv]
       allow_full_attention=true
     deps:
     - path: config/
@@ -105,9 +105,9 @@ stages:
       size: 6848
     - path: src/
       hash: md5
-      md5: 549e48e1cbfd5705fb0ff77289e081d7.dir
-      size: 1308002
-      nfiles: 112
+      md5: 2b84c3ef83f36d4e26976428c01cbc6b.dir
+      size: 1344801
+      nfiles: 114
     - path: utils/
       hash: md5
       md5: 34876b4220264e295e9c9a54aefda19c.dir
@@ -121,16 +121,16 @@ stages:
         methods:
         - lapeigvals
         - lookback_lens
-        - haloscope
         - hsdmvaf
         - semantic_entropy_probes
+        - token_entropy
         - tsv
         - hypergraph
         seed: 42
     outs:
     - path: outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/Summary/
       hash: md5
-      md5: 531ee70f18dfa11cf07b9bca81d6f8c7.dir
+      md5: e51bbc9238524d2a72f310650460179d.dir
       size: 2272053256555
       nfiles: 802
   generate_activations@dataset0-Data2txt-model0:
@@ -139,7 +139,7 @@ stages:
       model=llama2_7b_chat model.short_name=Llama-2-7b-chat-hf 
       features.mode=teacher_forcing features.max_length=10000 
       features.batch_size=4 seed=42 
-      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,tsv]
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,token_entropy,tsv]
       allow_full_attention=true
     deps:
     - path: config/
@@ -158,9 +158,9 @@ stages:
       size: 6848
     - path: src/
       hash: md5
-      md5: 549e48e1cbfd5705fb0ff77289e081d7.dir
-      size: 1308002
-      nfiles: 112
+      md5: 2b84c3ef83f36d4e26976428c01cbc6b.dir
+      size: 1344801
+      nfiles: 114
     - path: utils/
       hash: md5
       md5: 34876b4220264e295e9c9a54aefda19c.dir
@@ -174,16 +174,16 @@ stages:
         methods:
         - lapeigvals
         - lookback_lens
-        - haloscope
         - hsdmvaf
         - semantic_entropy_probes
+        - token_entropy
         - tsv
         - hypergraph
         seed: 42
     outs:
     - path: outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/Data2txt/
       hash: md5
-      md5: 8eb170516cf81602964766b0217862e2.dir
+      md5: 8df3902f5b69b5865e656911b38da706.dir
       size: 2534898934886
       nfiles: 894
   generate_activations_test@dataset0-QA-model0:
@@ -192,7 +192,7 @@ stages:
       model=llama2_7b_chat model.short_name=Llama-2-7b-chat-hf 
       features.mode=teacher_forcing features.max_length=10000 
       features.batch_size=4 seed=42 
-      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,tsv]
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,token_entropy,tsv]
       allow_full_attention=true
     deps:
     - path: config/
@@ -211,9 +211,9 @@ stages:
       size: 6848
     - path: src/
       hash: md5
-      md5: 391683a4fa9dfdf20070866118e57c30.dir
-      size: 1329517
-      nfiles: 113
+      md5: 2b84c3ef83f36d4e26976428c01cbc6b.dir
+      size: 1344801
+      nfiles: 114
     - path: utils/
       hash: md5
       md5: 34876b4220264e295e9c9a54aefda19c.dir
@@ -227,16 +227,16 @@ stages:
         methods:
         - lapeigvals
         - lookback_lens
-        - haloscope
         - hsdmvaf
         - semantic_entropy_probes
+        - token_entropy
         - tsv
         - hypergraph
         seed: 42
     outs:
     - path: outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA_test/
       hash: md5
-      md5: 756864077f1e36e949708902539436d1.dir
+      md5: 944d7febf09dcf4823d7331055e771c6.dir
       size: 119901490523
       nfiles: 148
   generate_activations_test@dataset0-Summary-model0:
@@ -245,7 +245,7 @@ stages:
       model=llama2_7b_chat model.short_name=Llama-2-7b-chat-hf 
       features.mode=teacher_forcing features.max_length=10000 
       features.batch_size=4 seed=42 
-      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,tsv]
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,token_entropy,tsv]
       allow_full_attention=true
     deps:
     - path: config/
@@ -264,9 +264,9 @@ stages:
       size: 6848
     - path: src/
       hash: md5
-      md5: 057339e679670f8dc7aa09021261c523.dir
-      size: 1329517
-      nfiles: 113
+      md5: 2b84c3ef83f36d4e26976428c01cbc6b.dir
+      size: 1344801
+      nfiles: 114
     - path: utils/
       hash: md5
       md5: 34876b4220264e295e9c9a54aefda19c.dir
@@ -280,16 +280,16 @@ stages:
         methods:
         - lapeigvals
         - lookback_lens
-        - haloscope
         - hsdmvaf
         - semantic_entropy_probes
+        - token_entropy
         - tsv
         - hypergraph
         seed: 42
     outs:
     - path: outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/Summary_test/
       hash: md5
-      md5: dabf3a6e27cb6427e582a42442839d66.dir
+      md5: 62e373a715934d26b49fd7c90e23a7ca.dir
       size: 411313583743
       nfiles: 162
   generate_activations_test@dataset0-Data2txt-model0:
@@ -298,7 +298,7 @@ stages:
       model=llama2_7b_chat model.short_name=Llama-2-7b-chat-hf 
       features.mode=teacher_forcing features.max_length=10000 
       features.batch_size=4 seed=42 
-      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,tsv]
+      methods=[lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,token_entropy,tsv]
       allow_full_attention=true
     deps:
     - path: config/
@@ -317,9 +317,9 @@ stages:
       size: 6848
     - path: src/
       hash: md5
-      md5: 057339e679670f8dc7aa09021261c523.dir
-      size: 1329517
-      nfiles: 113
+      md5: 2b84c3ef83f36d4e26976428c01cbc6b.dir
+      size: 1344801
+      nfiles: 114
     - path: utils/
       hash: md5
       md5: 34876b4220264e295e9c9a54aefda19c.dir
@@ -333,15 +333,150 @@ stages:
         methods:
         - lapeigvals
         - lookback_lens
-        - haloscope
         - hsdmvaf
         - semantic_entropy_probes
+        - token_entropy
         - tsv
         - hypergraph
         seed: 42
     outs:
     - path: outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/Data2txt_test/
       hash: md5
-      md5: c63d8a765390ae4757d776ca67ac28f6.dir
+      md5: 12a78124c21dcba39e8c8de3309b4f0e.dir
       size: 437530801173
       nfiles: 162
+  train_probe@dataset0-QA-model0-ml0:
+    cmd: python scripts/train_probe.py dataset.name=ragtruth 
+      dataset.task_type=QA model=llama2_7b_chat 
+      model.short_name=Llama-2-7b-chat-hf method=lapeigvals method.level=sample 
+      seed=42
+    deps:
+    - path: outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/
+      hash: md5
+      md5: 65557f19db2b6609d69666a0d0aa497b.dir
+      size: 747667924296
+      nfiles: 815
+    - path: outputs/splits/
+      hash: md5
+      md5: 0d8169838d4d836682e422f2a7093812.dir
+      size: 71823041
+      nfiles: 3
+    - path: scripts/train_probe.py
+      hash: md5
+      md5: dcef33b0430e8190fcd9fa5f30d600a8
+      size: 9532
+    - path: src/
+      hash: md5
+      md5: 2b84c3ef83f36d4e26976428c01cbc6b.dir
+      size: 1344801
+      nfiles: 114
+    params:
+      params.yaml:
+        cv_folds: 5
+        seed: 42
+    outs:
+    - path: 
+        outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/config.yaml
+      hash: md5
+      md5: d25095459c96a6f1ae76fde3a71bc2ce
+      size: 2503
+    - path: 
+        outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/model.pkl
+      hash: md5
+      md5: 713ba12542c88f7cd0632c0bcbf3bb26
+      size: 493044
+    - path: 
+        outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/train_metrics.json
+      hash: md5
+      md5: c49c0a70bd3424ff7e1bf6508c5f0732
+      size: 512
+  train_probe@dataset0-QA-model0-ml1:
+    cmd: python scripts/train_probe.py dataset.name=ragtruth 
+      dataset.task_type=QA model=llama2_7b_chat 
+      model.short_name=Llama-2-7b-chat-hf method=lookback_lens 
+      method.level=sample seed=42
+    deps:
+    - path: outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/
+      hash: md5
+      md5: 65557f19db2b6609d69666a0d0aa497b.dir
+      size: 747667924296
+      nfiles: 815
+    - path: outputs/splits/
+      hash: md5
+      md5: 0d8169838d4d836682e422f2a7093812.dir
+      size: 71823041
+      nfiles: 3
+    - path: scripts/train_probe.py
+      hash: md5
+      md5: dcef33b0430e8190fcd9fa5f30d600a8
+      size: 9532
+    - path: src/
+      hash: md5
+      md5: 2b84c3ef83f36d4e26976428c01cbc6b.dir
+      size: 1344801
+      nfiles: 114
+    params:
+      params.yaml:
+        cv_folds: 5
+        seed: 42
+    outs:
+    - path: 
+        outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/sample/config.yaml
+      hash: md5
+      md5: 17bdb3e2be54c854dcb6a9cc5c633a50
+      size: 2469
+    - path: 
+        outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/sample/model.pkl
+      hash: md5
+      md5: 101f376b9066d248d31e9307fe1c5694
+      size: 362075
+    - path: 
+        outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/sample/train_metrics.json
+      hash: md5
+      md5: d5942958576051b07e08d73a835879f9
+      size: 516
+  train_probe@dataset0-QA-model0-ml2:
+    cmd: python scripts/train_probe.py dataset.name=ragtruth 
+      dataset.task_type=QA model=llama2_7b_chat 
+      model.short_name=Llama-2-7b-chat-hf method=lookback_lens 
+      method.level=token seed=42
+    deps:
+    - path: outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/
+      hash: md5
+      md5: 65557f19db2b6609d69666a0d0aa497b.dir
+      size: 747667924296
+      nfiles: 815
+    - path: outputs/splits/
+      hash: md5
+      md5: 0d8169838d4d836682e422f2a7093812.dir
+      size: 71823041
+      nfiles: 3
+    - path: scripts/train_probe.py
+      hash: md5
+      md5: dcef33b0430e8190fcd9fa5f30d600a8
+      size: 9532
+    - path: src/
+      hash: md5
+      md5: 2b84c3ef83f36d4e26976428c01cbc6b.dir
+      size: 1344801
+      nfiles: 114
+    params:
+      params.yaml:
+        cv_folds: 5
+        seed: 42
+    outs:
+    - path: 
+        outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/token/config.yaml
+      hash: md5
+      md5: 1d9d8d553909c2c0da911ec0d33f76ac
+      size: 2468
+    - path: 
+        outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/token/model.pkl
+      hash: md5
+      md5: a18d4f0ef8dca1cc4fe9bc7992cdf8e6
+      size: 362074
+    - path: 
+        outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/token/train_metrics.json
+      hash: md5
+      md5: c01e40f8108255131aad4cefee9fb8b0
+      size: 584
