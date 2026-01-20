@@ -1,14 +1,14 @@
 # =============================================================================
 # DVC Pipeline for Hallucination Detection
 # =============================================================================
-# 目录结构: {base}/{dataset}/{model}/seed_{seed}/{task_type}/
+# 目录结构: {base}/{dataset}/{model}/seed_{seed}/{task_type}/{method}/{level}/
 # 
 # 流程顺序:
 #   1. split_dataset - 分割数据集
 #   2. generate_activations - 提取训练集特征
 #   3. generate_activations_test - 提取测试集特征
-#   4. train_probe - 训练探测器
-#   5. evaluate - 评估
+#   4. train_probe - 训练探测器 (按 method × level 组合)
+#   5. evaluate - 评估 (按 method × level 组合)
 #   6. aggregate - 汇总结果
 # =============================================================================
 
@@ -60,8 +60,6 @@ stages:
       - config/
       - utils/
       - outputs/splits/
-    # 只追踪真正影响原始特征提取的参数
-    # methods 和 allow_full_attention 不影响是否需要重新提取
     params:
       - features.mode
       - features.max_length
@@ -100,7 +98,6 @@ stages:
       - config/
       - utils/
       - outputs/splits/
-    # 追踪影响特征提取的参数（与训练集保持一致）
     params:
       - features.mode
       - features.max_length
@@ -114,12 +111,14 @@ stages:
   # ===========================================================================
   # Stage 3: 训练探测器
   # ===========================================================================
+  # ⚠️ 变更: 增加了 level 矩阵参数，输出路径改为 {method}/{level}/
   train_probe: 
     matrix: 
       dataset: ${datasets}
       task_type: ${task_types}
       model: ${models}
       method: ${methods}
+      level: ${levels}
     cmd: >-
       python scripts/train_probe.py
       dataset.name=${item.dataset.name}
@@ -127,6 +126,7 @@ stages:
       model=${item.model.name}
       model.short_name=${item.model.short_name}
       method=${item.method}
+      method.level=${item.level}
       seed=${seed}
     deps:
       - scripts/train_probe.py
@@ -137,18 +137,20 @@ stages:
       - seed
       - cv_folds
     outs:
-      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/probe/: 
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/${item.level}/: 
           persist: true
 
   # ===========================================================================
   # Stage 4: 评估
   # ===========================================================================
+  # ⚠️ 变更: 增加了 level 矩阵参数，路径与 train_probe 保持一致
   evaluate:
     matrix: 
       dataset: ${datasets}
       task_type: ${task_types}
       model: ${models}
       method: ${methods}
+      level: ${levels}
     cmd: >-
       python scripts/evaluate.py
       dataset.name=${item.dataset.name}
@@ -156,20 +158,21 @@ stages:
       model=${item.model.name}
       model.short_name=${item.model.short_name}
       method=${item.method}
+      method.level=${item.level}
       seed=${seed}
     deps: 
       - scripts/evaluate.py
-      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/probe/
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/${item.level}/
       - outputs/features/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/
       - outputs/features/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}_test/
       - outputs/splits/
     params:
       - seed
     metrics:
-      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/eval_results.json:
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/${item.level}/eval_results.json:
           cache: false
     plots:
-      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/roc_curve.json:
+      - outputs/models/${item.dataset.name}/${item.model.short_name}/seed_${seed}/${item.task_type}/${item.method}/${item.level}/roc_curve.json:
           cache: false
           x: fpr
           y: tpr

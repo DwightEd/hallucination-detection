@@ -6,7 +6,8 @@ Generates:
 - comparison_sample.csv: Sample-level comparison
 - comparison_token.csv: Token-level comparison
 
-Directory structure:
+Directory structure (v2 - with level):
+  outputs/models/{dataset}/{model}/seed_{seed}/{task}/{method}/{level}/eval_results.json
   outputs/results/{dataset}/{model}/seed_{seed}/train_{train_task}_eval_{eval_task}/{method}/eval_results.json
 """
 import sys
@@ -27,10 +28,16 @@ logger = logging.getLogger(__name__)
 
 
 def parse_path_info(eval_file: Path) -> Dict[str, Any]:
-    """Parse experiment info from path."""
+    """Parse experiment info from path.
+    
+    Supports both old and new path structures:
+    - Old: outputs/models/{dataset}/{model}/seed_{seed}/{task}/{method}/eval_results.json
+    - Old: outputs/models/{dataset}/{model}/seed_{seed}/{task}/{method}/probe/eval_results.json
+    - New: outputs/models/{dataset}/{model}/seed_{seed}/{task}/{method}/{level}/eval_results.json
+    """
     parts = eval_file.parts
     
-    # Try results directory format
+    # Try results directory format (for cross-task evaluation)
     try:
         results_idx = parts.index("results")
         if len(parts) >= results_idx + 6:
@@ -39,6 +46,13 @@ def parse_path_info(eval_file: Path) -> Dict[str, Any]:
             seed_dir = parts[results_idx + 3]
             train_eval_dir = parts[results_idx + 4]
             method = parts[results_idx + 5]
+            
+            # Check if there's a level directory
+            level = "sample"  # default
+            if len(parts) >= results_idx + 7:
+                potential_level = parts[results_idx + 6]
+                if potential_level in ["sample", "token"]:
+                    level = potential_level
             
             seed_match = re.match(r"seed_(\d+)", seed_dir)
             train_eval_match = re.match(r"train_(.+)_eval_(.+)", train_eval_dir)
@@ -50,6 +64,7 @@ def parse_path_info(eval_file: Path) -> Dict[str, Any]:
                     "dataset": dataset,
                     "model": model,
                     "method": method,
+                    "level": level,
                     "seed": int(seed_match.group(1)),
                     "train_task": train_task,
                     "eval_task": eval_task,
@@ -58,7 +73,7 @@ def parse_path_info(eval_file: Path) -> Dict[str, Any]:
     except ValueError:
         pass
     
-    # Try models directory format (old format)
+    # Try models directory format (both old and new)
     try:
         models_idx = parts.index("models")
         if len(parts) >= models_idx + 6:
@@ -68,12 +83,21 @@ def parse_path_info(eval_file: Path) -> Dict[str, Any]:
             task_type = parts[models_idx + 4]
             method = parts[models_idx + 5]
             
+            # Check for level directory (new format)
+            level = "sample"  # default
+            if len(parts) >= models_idx + 7:
+                potential_level = parts[models_idx + 6]
+                if potential_level in ["sample", "token", "probe"]:
+                    # "probe" is treated as "sample" for backward compatibility
+                    level = "sample" if potential_level == "probe" else potential_level
+            
             seed_match = re.match(r"seed_(\d+)", seed_dir)
             if seed_match:
                 return {
                     "dataset": dataset,
                     "model": model,
                     "method": method,
+                    "level": level,
                     "seed": int(seed_match.group(1)),
                     "train_task": task_type,
                     "eval_task": task_type,
@@ -96,8 +120,9 @@ def load_experiment_data(eval_file: Path) -> Dict[str, Any]:
     
     result = {**path_info}
     
-    # 获取 level 信息
-    level = data.get("level", "sample")
+    # 获取 level 信息 (优先从文件内容，然后从路径)
+    level = data.get("level", path_info.get("level", "sample"))
+    result["level"] = level
     
     # Sample-level metrics - 支持多种键名格式
     # 格式1: sample_level_train/sample_level_test (旧格式)
@@ -153,28 +178,30 @@ def format_results_table(experiments: List[Dict], level: str = "sample") -> str:
     
     groups = defaultdict(list)
     for exp in experiments:
-        groups[exp.get("method", "unknown")].append(exp)
+        # Group by method+level combination
+        method_key = f"{exp.get('method', 'unknown')}_{exp.get('level', 'sample')}"
+        groups[method_key].append(exp)
     
     rows = []
-    for method, exps in sorted(groups.items()):
+    for method_key, exps in sorted(groups.items()):
         train_aurocs = [e[f"{prefix}train_auroc"] for e in exps if e.get(f"{prefix}train_auroc")]
         test_aurocs = [e[f"{prefix}test_auroc"] for e in exps if e.get(f"{prefix}test_auroc")]
         test_auprs = [e[f"{prefix}test_aupr"] for e in exps if e.get(f"{prefix}test_aupr")]
         
         rows.append({
-            "method": method,
+            "method": method_key,
             "n": len(exps),
             "train_auroc": sum(train_aurocs) / len(train_aurocs) if train_aurocs else 0,
             "test_auroc": sum(test_aurocs) / len(test_aurocs) if test_aurocs else 0,
             "test_aupr": sum(test_auprs) / len(test_auprs) if test_auprs else 0,
         })
     
-    header = f"{'Method':<20} {'N':>4} │ {'Train AUROC':>11} │ {'Test AUROC':>11} {'Test AUPR':>11}"
+    header = f"{'Method':<30} {'N':>4} │ {'Train AUROC':>11} │ {'Test AUROC':>11} {'Test AUPR':>11}"
     sep = "─" * len(header)
     
     lines = [sep, header, sep]
     for r in rows:
-        line = f"{r['method']:<20} {r['n']:>4} │ {r['train_auroc']:>11.4f} │ {r['test_auroc']:>11.4f} {r['test_aupr']:>11.4f}"
+        line = f"{r['method']:<30} {r['n']:>4} │ {r['train_auroc']:>11.4f} │ {r['test_auroc']:>11.4f} {r['test_aupr']:>11.4f}"
         lines.append(line)
     lines.append(sep)
     
@@ -189,16 +216,17 @@ def save_comparison_csv(experiments: List[Dict], output_path: Path, level: str =
     prefix = f"{level}_"
     
     with open(output_path, "w") as f:
-        f.write("dataset,model,train_task,eval_task,method,is_cross_task,")
+        f.write("dataset,model,train_task,eval_task,method,level,is_cross_task,")
         f.write("train_auroc,train_aupr,test_auroc,test_aupr,test_f1\n")
         
-        for exp in sorted(experiments, key=lambda x: (x["dataset"], x["method"], x["train_task"], x["eval_task"])):
+        for exp in sorted(experiments, key=lambda x: (x["dataset"], x["method"], x.get("level", "sample"), x["train_task"], x["eval_task"])):
             row = [
                 exp["dataset"],
                 exp["model"],
                 exp["train_task"],
                 exp["eval_task"],
                 exp["method"],
+                exp.get("level", "sample"),
                 "1" if exp["is_cross_task"] else "0",
                 f"{exp.get(f'{prefix}train_auroc', 0):.4f}",
                 f"{exp.get(f'{prefix}train_aupr', 0):.4f}",
@@ -255,15 +283,20 @@ def main():
     print(f"  Same-task evaluations: {len(same_task_exps)}")
     print(f"  Cross-task evaluations: {len(cross_task_exps)}")
     print(f"Methods: {', '.join(sorted(by_method.keys()))}")
+    
+    # Count by level
+    sample_exps = [e for e in experiments if e.get("level", "sample") == "sample"]
+    token_exps = [e for e in experiments if e.get("level") == "token"]
+    print(f"  Sample-level: {len(sample_exps)}, Token-level: {len(token_exps)}")
 
     print("\n" + "=" * 90)
     print("SAMPLE-LEVEL RESULTS (Same-Task)")
     print("=" * 90)
-    print(format_results_table(same_task_exps, "sample"))
+    sample_same_task = [e for e in same_task_exps if e.get("level", "sample") == "sample"]
+    print(format_results_table(sample_same_task, "sample"))
 
-    token_exps = [e for e in experiments if e.get("token_test_auroc", 0) > 0]
-    if token_exps:
-        token_same_task = [e for e in token_exps if not e["is_cross_task"]]
+    token_same_task = [e for e in same_task_exps if e.get("level") == "token"]
+    if token_same_task:
         print("\n" + "=" * 90)
         print("TOKEN-LEVEL RESULTS (Same-Task)")
         print("=" * 90)
@@ -279,20 +312,23 @@ def main():
         "total_experiments": len(experiments),
         "same_task_count": len(same_task_exps),
         "cross_task_count": len(cross_task_exps),
+        "sample_level_count": len(sample_exps),
+        "token_level_count": len(token_exps),
         "datasets": list(set(e["dataset"] for e in experiments)),
         "methods": list(set(e["method"] for e in experiments)),
+        "levels": list(set(e.get("level", "sample") for e in experiments)),
         "sample_level_by_method": {
             method: {
-                "mean_test_auroc": calc_avg([e for e in exps if not e["is_cross_task"]], "sample_test_auroc"),
-                "mean_test_aupr": calc_avg([e for e in exps if not e["is_cross_task"]], "sample_test_aupr"),
-                "n_experiments": len([e for e in exps if not e["is_cross_task"]]),
+                "mean_test_auroc": calc_avg([e for e in exps if not e["is_cross_task"] and e.get("level", "sample") == "sample"], "sample_test_auroc"),
+                "mean_test_aupr": calc_avg([e for e in exps if not e["is_cross_task"] and e.get("level", "sample") == "sample"], "sample_test_aupr"),
+                "n_experiments": len([e for e in exps if not e["is_cross_task"] and e.get("level", "sample") == "sample"]),
             }
             for method, exps in by_method.items()
         },
         "token_level_by_method": {
             method: {
-                "mean_test_auroc": calc_avg([e for e in exps if not e["is_cross_task"] and e.get("token_test_auroc")], "token_test_auroc"),
-                "n_experiments": len([e for e in exps if not e["is_cross_task"] and e.get("token_test_auroc")]),
+                "mean_test_auroc": calc_avg([e for e in exps if not e["is_cross_task"] and e.get("level") == "token"], "token_test_auroc"),
+                "n_experiments": len([e for e in exps if not e["is_cross_task"] and e.get("level") == "token"]),
             }
             for method, exps in by_method.items()
         },

@@ -1,12 +1,12 @@
 # =============================================================================
-# DVC Parameters - 支持按任务类型分别训练
+# DVC Parameters - 支持按任务类型和级别分别训练
 # =============================================================================
 # 修改这些值后运行 `dvc repro` 即可重新运行整个流水线
-# 支持矩阵交叉：所有 datasets × task_types × models × methods 的组合都会被执行
+# 支持矩阵交叉：datasets × task_types × models × methods × levels 的组合
 #
 # 目录结构:
 #   features: outputs/features/{dataset}/{model}/seed_{seed}/{task_type}/
-#   models:   outputs/models/{dataset}/{model}/seed_{seed}/{task_type}/{method}/probe/
+#   models:   outputs/models/{dataset}/{model}/seed_{seed}/{task_type}/{method}/{level}/
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -29,9 +29,6 @@ task_types:
 # 模型配置
 # -----------------------------------------------------------------------------
 # short_name 必须与脚本输出的目录名一致
-# models: 
-#   - name: mistral_7b
-#     short_name: Mistral-7B-Instruct-v0.3
 models: 
   - name: llama2_7b_chat             
     short_name: Llama-2-7b-chat-hf
@@ -55,15 +52,22 @@ methods:
 methods_str: "lapeigvals,lookback_lens,haloscope,hsdmvaf,hypergraph,semantic_entropy_probes,tsv"
 
 # -----------------------------------------------------------------------------
+# 训练级别配置 (⚠️ 重要: 被 DVC 矩阵直接使用)
+# -----------------------------------------------------------------------------
+# 可选值: sample, token
+# - sample: 样本级别分类（每个样本一个分数）
+# - token: Token级别分类（每个token一个分数，用于定位幻觉span）
+
+levels:
+  - sample
+  - token
+
+# -----------------------------------------------------------------------------
 # 特征提取配置 (内存优化)
 # -----------------------------------------------------------------------------
-# ⚠️ 这是特征提取的主要配置源
-# Hydra会将这些值合并到 features 配置中
 features: 
   mode: teacher_forcing
   attention_layers: all
-  # ⚠️ max_length 是token数量限制，不是字符数
-
   max_length: 10000
   store_mode: incremental
   batch_size: 4
@@ -71,7 +75,7 @@ features:
 # -----------------------------------------------------------------------------
 # GPU配置
 # -----------------------------------------------------------------------------
-cuda_devices: "0,1"  # 多GPU用逗号分隔
+cuda_devices: "0,1"
 
 # -----------------------------------------------------------------------------
 # 完整注意力控制
@@ -87,28 +91,12 @@ split:
   test_ratio: 0.1
   random_seed: 42
   stratify: true
-  # 注意：不再支持删除原始数据
-  # 原始数据将保持不变，分割结果保存在 outputs/splits/
 
 # -----------------------------------------------------------------------------
 # 训练与评估配置
 # -----------------------------------------------------------------------------
 seed: 42
 cv_folds: 5
-
-# 级别配置（统一字段，替代原 classification_levels）
-# 支持 sample（样本级）或 token（token级）
-levels:
-  - sample
-
-# 评估矩阵：定义训练任务和评估任务的组合
-# 如果不指定，默认为同任务评估（train_task == eval_task）
-# 跨任务评估示例：
-# eval_matrix:
-#   - train_task: QA
-#     eval_task: Summary
-#   - train_task: Summary
-#     eval_task: Data2txt
 
 # -----------------------------------------------------------------------------
 # 输出目录
