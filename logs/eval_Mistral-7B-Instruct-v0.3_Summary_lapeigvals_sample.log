@@ -1,0 +1,44 @@
+[2026-01-21 14:58:19,460][__main__][INFO] - ============================================================
+[2026-01-21 14:58:19,460][__main__][INFO] - Evaluate: lapeigvals
+[2026-01-21 14:58:19,461][__main__][INFO] - Dataset: ragtruth
+[2026-01-21 14:58:19,461][__main__][INFO] - Model: Mistral-7B-Instruct-v0.3
+[2026-01-21 14:58:19,461][__main__][INFO] - Task: Summary
+[2026-01-21 14:58:19,461][__main__][INFO] - Level config: sample
+[2026-01-21 14:58:19,461][__main__][INFO] - ============================================================
+[2026-01-21 14:58:28,716][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 14:58:28,716][src.features.loader][INFO] -   sample_id: 1004
+[2026-01-21 14:58:28,716][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 14:58:28,716][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 14:58:28,724][src.features.loader][INFO] - Loaded 790 samples
+[2026-01-21 14:58:28,725][__main__][INFO] - Loaded 790 train samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Summary
+[2026-01-21 14:58:30,651][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 14:58:30,652][src.features.loader][INFO] -   sample_id: 1052
+[2026-01-21 14:58:30,652][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 14:58:30,652][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 14:58:30,655][src.features.loader][INFO] - Loaded 150 samples
+[2026-01-21 14:58:30,655][__main__][INFO] - Loaded 150 test samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Summary_test
+[2026-01-21 14:58:30,655][__main__][INFO] - Train: 790, Test: 150
+[2026-01-21 14:58:30,655][__main__][INFO] - 
+[2026-01-21 14:58:30,655][__main__][INFO] - ============================================================
+[2026-01-21 14:58:30,655][__main__][INFO] - Evaluating at level: sample
+[2026-01-21 14:58:30,655][__main__][INFO] - ============================================================
+[2026-01-21 14:58:30,665][src.methods.base][INFO] - Loaded method from outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Summary/lapeigvals/sample/model.pkl
+[2026-01-21 14:58:30,665][__main__][INFO] - Loaded model from outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Summary/lapeigvals/sample/model.pkl
+[2026-01-21 15:00:17,479][__main__][INFO] - 
+[2026-01-21 15:00:17,479][__main__][INFO] - >>> [sample] Train (In-sample):
+[2026-01-21 15:00:17,479][__main__][INFO] -     AUROC: 1.0000
+[2026-01-21 15:00:17,479][__main__][INFO] -     AUPR:  1.0000
+[2026-01-21 15:00:17,479][__main__][INFO] - 
+[2026-01-21 15:00:17,479][__main__][INFO] - >>> [sample] Test (Out-of-sample):
+[2026-01-21 15:00:17,479][__main__][INFO] -     AUROC: 0.4942
+[2026-01-21 15:00:17,479][__main__][INFO] -     AUPR:  0.5942
+[2026-01-21 15:00:17,479][__main__][INFO] -     F1:    0.7137
+[2026-01-21 15:00:17,479][__main__][INFO] - 
+[2026-01-21 15:00:17,479][__main__][INFO] - Threshold: 0.0100
+[2026-01-21 15:00:17,498][__main__][INFO] - [sample] Results saved to outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Summary/lapeigvals/sample/eval_results.json
+[2026-01-21 15:00:17,498][__main__][INFO] - 
+[2026-01-21 15:00:17,498][__main__][INFO] - ============================================================
+[2026-01-21 15:00:17,498][__main__][INFO] - Evaluation Summary
+[2026-01-21 15:00:17,498][__main__][INFO] - ============================================================
+[2026-01-21 15:00:17,498][__main__][INFO] -   [sample] Test AUROC: 0.4942, AUPR: 0.5942, F1: 0.7137
+[2026-01-21 15:00:17,498][__main__][INFO] - ============================================================

@@ -1,0 +1,44 @@
+[2026-01-21 15:22:34,680][__main__][INFO] - ============================================================
+[2026-01-21 15:22:34,681][__main__][INFO] - Evaluate: token_entropy
+[2026-01-21 15:22:34,681][__main__][INFO] - Dataset: ragtruth
+[2026-01-21 15:22:34,681][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-21 15:22:34,681][__main__][INFO] - Task: QA
+[2026-01-21 15:22:34,681][__main__][INFO] - Level config: sample
+[2026-01-21 15:22:34,681][__main__][INFO] - ============================================================
+[2026-01-21 15:22:41,121][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 15:22:41,121][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-21 15:22:41,121][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 15:22:41,121][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 15:22:41,131][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-21 15:22:41,132][__main__][INFO] - Loaded 803 train samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA
+[2026-01-21 15:22:42,457][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 15:22:42,457][src.features.loader][INFO] -   sample_id: 12044
+[2026-01-21 15:22:42,457][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 15:22:42,458][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 15:22:42,461][src.features.loader][INFO] - Loaded 136 samples
+[2026-01-21 15:22:42,461][__main__][INFO] - Loaded 136 test samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA_test
+[2026-01-21 15:22:42,462][__main__][INFO] - Train: 803, Test: 136
+[2026-01-21 15:22:42,462][__main__][INFO] - 
+[2026-01-21 15:22:42,462][__main__][INFO] - ============================================================
+[2026-01-21 15:22:42,462][__main__][INFO] - Evaluating at level: sample
+[2026-01-21 15:22:42,462][__main__][INFO] - ============================================================
+[2026-01-21 15:22:42,470][src.methods.base][INFO] - Loaded method from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/token_entropy/sample/model.pkl
+[2026-01-21 15:22:42,470][__main__][INFO] - Loaded model from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/token_entropy/sample/model.pkl
+[2026-01-21 15:22:47,129][__main__][INFO] - 
+[2026-01-21 15:22:47,129][__main__][INFO] - >>> [sample] Train (In-sample):
+[2026-01-21 15:22:47,129][__main__][INFO] -     AUROC: 0.5946
+[2026-01-21 15:22:47,129][__main__][INFO] -     AUPR:  0.5090
+[2026-01-21 15:22:47,129][__main__][INFO] - 
+[2026-01-21 15:22:47,129][__main__][INFO] - >>> [sample] Test (Out-of-sample):
+[2026-01-21 15:22:47,129][__main__][INFO] -     AUROC: 0.5862
+[2026-01-21 15:22:47,129][__main__][INFO] -     AUPR:  0.2593
+[2026-01-21 15:22:47,129][__main__][INFO] -     F1:    0.4328
+[2026-01-21 15:22:47,130][__main__][INFO] - 
+[2026-01-21 15:22:47,130][__main__][INFO] - Threshold: 0.4500
+[2026-01-21 15:22:47,143][__main__][INFO] - [sample] Results saved to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/token_entropy/sample/eval_results.json
+[2026-01-21 15:22:47,143][__main__][INFO] - 
+[2026-01-21 15:22:47,143][__main__][INFO] - ============================================================
+[2026-01-21 15:22:47,143][__main__][INFO] - Evaluation Summary
+[2026-01-21 15:22:47,143][__main__][INFO] - ============================================================
+[2026-01-21 15:22:47,143][__main__][INFO] -   [sample] Test AUROC: 0.5862, AUPR: 0.2593, F1: 0.4328
+[2026-01-21 15:22:47,143][__main__][INFO] - ============================================================

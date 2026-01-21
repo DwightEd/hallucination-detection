@@ -1,0 +1,44 @@
+[2026-01-21 15:23:26,793][__main__][INFO] - ============================================================
+[2026-01-21 15:23:26,793][__main__][INFO] - Evaluate: lapeigvals
+[2026-01-21 15:23:26,793][__main__][INFO] - Dataset: ragtruth
+[2026-01-21 15:23:26,794][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-21 15:23:26,794][__main__][INFO] - Task: Summary
+[2026-01-21 15:23:26,794][__main__][INFO] - Level config: sample
+[2026-01-21 15:23:26,794][__main__][INFO] - ============================================================
+[2026-01-21 15:23:36,952][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 15:23:36,953][src.features.loader][INFO] -   sample_id: 1040
+[2026-01-21 15:23:36,953][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 15:23:36,953][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 15:23:36,961][src.features.loader][INFO] - Loaded 790 samples
+[2026-01-21 15:23:36,963][__main__][INFO] - Loaded 790 train samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/Summary
+[2026-01-21 15:23:38,942][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 15:23:38,942][src.features.loader][INFO] -   sample_id: 1112
+[2026-01-21 15:23:38,942][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 15:23:38,942][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 15:23:38,945][src.features.loader][INFO] - Loaded 150 samples
+[2026-01-21 15:23:38,946][__main__][INFO] - Loaded 150 test samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/Summary_test
+[2026-01-21 15:23:38,946][__main__][INFO] - Train: 790, Test: 150
+[2026-01-21 15:23:38,946][__main__][INFO] - 
+[2026-01-21 15:23:38,946][__main__][INFO] - ============================================================
+[2026-01-21 15:23:38,946][__main__][INFO] - Evaluating at level: sample
+[2026-01-21 15:23:38,946][__main__][INFO] - ============================================================
+[2026-01-21 15:23:38,956][src.methods.base][INFO] - Loaded method from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/Summary/lapeigvals/sample/model.pkl
+[2026-01-21 15:23:38,957][__main__][INFO] - Loaded model from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/Summary/lapeigvals/sample/model.pkl
+[2026-01-21 15:25:02,029][__main__][INFO] - 
+[2026-01-21 15:25:02,029][__main__][INFO] - >>> [sample] Train (In-sample):
+[2026-01-21 15:25:02,029][__main__][INFO] -     AUROC: 1.0000
+[2026-01-21 15:25:02,029][__main__][INFO] -     AUPR:  1.0000
+[2026-01-21 15:25:02,029][__main__][INFO] - 
+[2026-01-21 15:25:02,029][__main__][INFO] - >>> [sample] Test (Out-of-sample):
+[2026-01-21 15:25:02,029][__main__][INFO] -     AUROC: 0.5630
+[2026-01-21 15:25:02,029][__main__][INFO] -     AUPR:  0.6403
+[2026-01-21 15:25:02,030][__main__][INFO] -     F1:    0.7225
+[2026-01-21 15:25:02,030][__main__][INFO] - 
+[2026-01-21 15:25:02,030][__main__][INFO] - Threshold: 0.0100
+[2026-01-21 15:25:02,047][__main__][INFO] - [sample] Results saved to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/Summary/lapeigvals/sample/eval_results.json
+[2026-01-21 15:25:02,047][__main__][INFO] - 
+[2026-01-21 15:25:02,047][__main__][INFO] - ============================================================
+[2026-01-21 15:25:02,047][__main__][INFO] - Evaluation Summary
+[2026-01-21 15:25:02,047][__main__][INFO] - ============================================================
+[2026-01-21 15:25:02,047][__main__][INFO] -   [sample] Test AUROC: 0.5630, AUPR: 0.6403, F1: 0.7225
+[2026-01-21 15:25:02,047][__main__][INFO] - ============================================================

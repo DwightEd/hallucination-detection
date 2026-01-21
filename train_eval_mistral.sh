@@ -190,24 +190,24 @@ main() {
     # ===================
     # Phase 1: 训练所有方法
     # ===================
-    echo ""
-    log_info "========== Phase 1: 训练 =========="
+    # echo ""
+    # log_info "========== Phase 1: 训练 =========="
     
-    for task in "${TASK_TYPES[@]}"; do
-        echo ""
-        log_info ">>> 任务类型: ${task}"
+    # for task in "${TASK_TYPES[@]}"; do
+    #     echo ""
+    #     log_info ">>> 任务类型: ${task}"
         
-        for ml in "${METHOD_LEVELS[@]}"; do
-            IFS=':' read -r method level <<< "$ml"
-            total=$((total + 1))
+    #     for ml in "${METHOD_LEVELS[@]}"; do
+    #         IFS=':' read -r method level <<< "$ml"
+    #         total=$((total + 1))
             
-            if train_method "$task" "$method" "$level"; then
-                success=$((success + 1))
-            else
-                failed=$((failed + 1))
-            fi
-        done
-    done
+    #         if train_method "$task" "$method" "$level"; then
+    #             success=$((success + 1))
+    #         else
+    #             failed=$((failed + 1))
+    #         fi
+    #     done
+    # done
     
     # ===================
     # Phase 2: 评估所有方法

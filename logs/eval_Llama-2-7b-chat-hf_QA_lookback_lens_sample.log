@@ -86,3 +86,47 @@
 [2026-01-21 09:49:49,931][__main__][INFO] - ============================================================
 [2026-01-21 09:49:49,931][__main__][INFO] -   [sample] Test AUROC: 0.5923, AUPR: 0.3255, F1: 0.3944
 [2026-01-21 09:49:49,931][__main__][INFO] - ============================================================
+[2026-01-21 14:17:13,628][__main__][INFO] - ============================================================
+[2026-01-21 14:17:13,628][__main__][INFO] - Evaluate: lookback_lens
+[2026-01-21 14:17:13,629][__main__][INFO] - Dataset: ragtruth
+[2026-01-21 14:17:13,629][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-21 14:17:13,629][__main__][INFO] - Task: QA
+[2026-01-21 14:17:13,629][__main__][INFO] - Level config: sample
+[2026-01-21 14:17:13,629][__main__][INFO] - ============================================================
+[2026-01-21 14:17:20,417][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 14:17:20,417][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-21 14:17:20,417][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 14:17:20,417][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 14:17:20,430][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-21 14:17:20,431][__main__][INFO] - Loaded 803 train samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA
+[2026-01-21 14:17:21,764][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 14:17:21,764][src.features.loader][INFO] -   sample_id: 12044
+[2026-01-21 14:17:21,764][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 14:17:21,765][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 14:17:21,768][src.features.loader][INFO] - Loaded 136 samples
+[2026-01-21 14:17:21,769][__main__][INFO] - Loaded 136 test samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA_test
+[2026-01-21 14:17:21,769][__main__][INFO] - Train: 803, Test: 136
+[2026-01-21 14:17:21,769][__main__][INFO] - 
+[2026-01-21 14:17:21,769][__main__][INFO] - ============================================================
+[2026-01-21 14:17:21,769][__main__][INFO] - Evaluating at level: sample
+[2026-01-21 14:17:21,769][__main__][INFO] - ============================================================
+[2026-01-21 14:17:21,778][src.methods.base][INFO] - Loaded method from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/sample/model.pkl
+[2026-01-21 14:17:21,778][__main__][INFO] - Loaded model from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/sample/model.pkl
+[2026-01-21 14:17:30,727][__main__][INFO] - 
+[2026-01-21 14:17:30,727][__main__][INFO] - >>> [sample] Train (In-sample):
+[2026-01-21 14:17:30,728][__main__][INFO] -     AUROC: 1.0000
+[2026-01-21 14:17:30,728][__main__][INFO] -     AUPR:  1.0000
+[2026-01-21 14:17:30,728][__main__][INFO] - 
+[2026-01-21 14:17:30,728][__main__][INFO] - >>> [sample] Test (Out-of-sample):
+[2026-01-21 14:17:30,728][__main__][INFO] -     AUROC: 0.5923
+[2026-01-21 14:17:30,728][__main__][INFO] -     AUPR:  0.3255
+[2026-01-21 14:17:30,728][__main__][INFO] -     F1:    0.3944
+[2026-01-21 14:17:30,728][__main__][INFO] - 
+[2026-01-21 14:17:30,728][__main__][INFO] - Threshold: 0.6800
+[2026-01-21 14:17:30,815][__main__][INFO] - [sample] Results saved to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/sample/eval_results.json
+[2026-01-21 14:17:30,815][__main__][INFO] - 
+[2026-01-21 14:17:30,815][__main__][INFO] - ============================================================
+[2026-01-21 14:17:30,815][__main__][INFO] - Evaluation Summary
+[2026-01-21 14:17:30,815][__main__][INFO] - ============================================================
+[2026-01-21 14:17:30,815][__main__][INFO] -   [sample] Test AUROC: 0.5923, AUPR: 0.3255, F1: 0.3944
+[2026-01-21 14:17:30,815][__main__][INFO] - ============================================================

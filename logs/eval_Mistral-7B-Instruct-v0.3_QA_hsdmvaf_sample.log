@@ -1,0 +1,50 @@
+[2026-01-21 14:06:58,538][__main__][INFO] - ============================================================
+[2026-01-21 14:06:58,538][__main__][INFO] - Evaluate: hsdmvaf
+[2026-01-21 14:06:58,538][__main__][INFO] - Dataset: ragtruth
+[2026-01-21 14:06:58,538][__main__][INFO] - Model: Mistral-7B-Instruct-v0.3
+[2026-01-21 14:06:58,538][__main__][INFO] - Task: QA
+[2026-01-21 14:06:58,538][__main__][INFO] - Level config: sample
+[2026-01-21 14:06:58,538][__main__][INFO] - ============================================================
+[2026-01-21 14:07:02,466][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 14:07:02,466][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-21 14:07:02,466][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 14:07:02,466][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 14:07:02,474][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-21 14:07:02,475][__main__][INFO] - Loaded 803 train samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA
+[2026-01-21 14:07:03,403][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 14:07:03,403][src.features.loader][INFO] -   sample_id: 12014
+[2026-01-21 14:07:03,403][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 14:07:03,403][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 14:07:03,405][src.features.loader][INFO] - Loaded 136 samples
+[2026-01-21 14:07:03,406][__main__][INFO] - Loaded 136 test samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA_test
+[2026-01-21 14:07:03,406][__main__][INFO] - Train: 803, Test: 136
+[2026-01-21 14:07:03,406][__main__][INFO] - 
+[2026-01-21 14:07:03,406][__main__][INFO] - ============================================================
+[2026-01-21 14:07:03,406][__main__][INFO] - Evaluating at level: sample
+[2026-01-21 14:07:03,406][__main__][INFO] - ============================================================
+[2026-01-21 14:07:03,412][src.methods.base][INFO] - Loaded method from outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/hsdmvaf/sample/model.pkl
+[2026-01-21 14:07:03,412][__main__][INFO] - Loaded model from outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/hsdmvaf/sample/model.pkl
+/share/home/tm902089733300000/a903202310/lys/research/hallucination-detection/src/methods/hsdmvaf/features.py:98: UserWarning: std(): degrees of freedom is <= 0. Correction should be strictly less than the reduction factor (input numel divided by output numel). (Triggered internally at /pytorch/aten/src/ATen/native/ReduceOps.cpp:1831.)
+  std = all_features.std(dim=0, keepdim=True) + 1e-8
+/share/home/tm902089733300000/a903202310/lys/research/hallucination-detection/src/methods/hsdmvaf/features.py:98: UserWarning: std(): degrees of freedom is <= 0. Correction should be strictly less than the reduction factor (input numel divided by output numel). (Triggered internally at /pytorch/aten/src/ATen/native/ReduceOps.cpp:1831.)
+  std = all_features.std(dim=0, keepdim=True) + 1e-8
+/share/home/tm902089733300000/a903202310/lys/research/hallucination-detection/src/methods/hsdmvaf/features.py:98: UserWarning: std(): degrees of freedom is <= 0. Correction should be strictly less than the reduction factor (input numel divided by output numel). (Triggered internally at /pytorch/aten/src/ATen/native/ReduceOps.cpp:1831.)
+  std = all_features.std(dim=0, keepdim=True) + 1e-8
+[2026-01-21 14:46:29,749][__main__][INFO] - 
+[2026-01-21 14:46:29,749][__main__][INFO] - >>> [sample] Train (In-sample):
+[2026-01-21 14:46:29,749][__main__][INFO] -     AUROC: 0.9856
+[2026-01-21 14:46:29,749][__main__][INFO] -     AUPR:  0.9600
+[2026-01-21 14:46:29,749][__main__][INFO] - 
+[2026-01-21 14:46:29,749][__main__][INFO] - >>> [sample] Test (Out-of-sample):
+[2026-01-21 14:46:29,749][__main__][INFO] -     AUROC: 0.6882
+[2026-01-21 14:46:29,749][__main__][INFO] -     AUPR:  0.4279
+[2026-01-21 14:46:29,749][__main__][INFO] -     F1:    0.4638
+[2026-01-21 14:46:29,749][__main__][INFO] - 
+[2026-01-21 14:46:29,749][__main__][INFO] - Threshold: 0.4000
+[2026-01-21 14:46:29,790][__main__][INFO] - [sample] Results saved to outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/hsdmvaf/sample/eval_results.json
+[2026-01-21 14:46:29,790][__main__][INFO] - 
+[2026-01-21 14:46:29,790][__main__][INFO] - ============================================================
+[2026-01-21 14:46:29,790][__main__][INFO] - Evaluation Summary
+[2026-01-21 14:46:29,790][__main__][INFO] - ============================================================
+[2026-01-21 14:46:29,790][__main__][INFO] -   [sample] Test AUROC: 0.6882, AUPR: 0.4279, F1: 0.4638
+[2026-01-21 14:46:29,790][__main__][INFO] - ============================================================

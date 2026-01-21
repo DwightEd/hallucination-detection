@@ -1,0 +1,34 @@
+[2026-01-21 15:26:53,781][__main__][INFO] - ============================================================
+[2026-01-21 15:26:53,781][__main__][INFO] - Evaluate: lookback_lens
+[2026-01-21 15:26:53,781][__main__][INFO] - Dataset: ragtruth
+[2026-01-21 15:26:53,782][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-21 15:26:53,782][__main__][INFO] - Task: Summary
+[2026-01-21 15:26:53,782][__main__][INFO] - Level config: token
+[2026-01-21 15:26:53,782][__main__][INFO] - ============================================================
+[2026-01-21 15:27:02,679][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 15:27:02,679][src.features.loader][INFO] -   sample_id: 1040
+[2026-01-21 15:27:02,679][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 15:27:02,679][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 15:41:54,338][src.features.loader][INFO] - Loaded 790 samples
+[2026-01-21 15:41:54,338][src.features.loader][INFO] - Token-level labels: 529/529 hallucinated samples
+[2026-01-21 15:41:54,840][__main__][INFO] - Loaded 790 train samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/Summary
+[2026-01-21 15:41:57,114][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 15:41:57,115][src.features.loader][INFO] -   sample_id: 1112
+[2026-01-21 15:41:57,115][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 15:41:57,115][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 15:44:20,837][src.features.loader][INFO] - Loaded 150 samples
+[2026-01-21 15:44:20,837][src.features.loader][INFO] - Token-level labels: 86/86 hallucinated samples
+[2026-01-21 15:44:21,228][__main__][INFO] - Loaded 150 test samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/Summary_test
+[2026-01-21 15:44:21,228][__main__][INFO] - Train: 790, Test: 150
+[2026-01-21 15:44:21,228][__main__][INFO] - 
+[2026-01-21 15:44:21,228][__main__][INFO] - ============================================================
+[2026-01-21 15:44:21,228][__main__][INFO] - Evaluating at level: token
+[2026-01-21 15:44:21,228][__main__][INFO] - ============================================================
+[2026-01-21 15:44:21,236][src.methods.base][INFO] - Loaded method from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/Summary/lookback_lens/token/model.pkl
+[2026-01-21 15:44:21,236][__main__][INFO] - Loaded model from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/Summary/lookback_lens/token/model.pkl
+[2026-01-21 15:44:21,238][__main__][ERROR] - Model does not have token-level classifier fitted!
+[2026-01-21 15:44:21,238][__main__][INFO] - 
+[2026-01-21 15:44:21,238][__main__][INFO] - ============================================================
+[2026-01-21 15:44:21,238][__main__][INFO] - Evaluation Summary
+[2026-01-21 15:44:21,238][__main__][INFO] - ============================================================
+[2026-01-21 15:44:21,238][__main__][INFO] - ============================================================
