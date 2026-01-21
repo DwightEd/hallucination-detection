@@ -1,0 +1,50 @@
+[2026-01-21 01:46:37,239][__main__][INFO] - ============================================================
+[2026-01-21 01:46:37,239][__main__][INFO] - Train Probe: lookback_lens
+[2026-01-21 01:46:37,239][__main__][INFO] - Dataset: ragtruth
+[2026-01-21 01:46:37,239][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-21 01:46:37,239][__main__][INFO] - Task: QA
+[2026-01-21 01:46:37,239][__main__][INFO] - ============================================================
+[2026-01-21 01:46:42,080][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 01:46:42,080][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-21 01:46:42,080][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 01:46:42,080][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 01:46:42,090][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-21 01:46:42,091][__main__][INFO] - Loaded 803 samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA
+[2026-01-21 01:46:42,091][__main__][INFO] - Train: 803 (347 positive)
+[2026-01-21 01:46:42,091][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-21 01:46:42,092][__main__][INFO] - 
+[2026-01-21 01:46:42,092][__main__][INFO] - ============================================================
+[2026-01-21 01:46:42,092][__main__][INFO] - Training at level: sample
+[2026-01-21 01:46:42,092][__main__][INFO] - ============================================================
+[2026-01-21 01:46:42,092][__main__][INFO] - Training lookback_lens at sample level...
+[2026-01-21 01:46:42,166][src.methods.base][INFO] - Extracting features: 0/803 (0%)
+[2026-01-21 01:46:43,104][src.methods.base][INFO] - Extracting features: 80/803 (10%)
+[2026-01-21 01:46:43,405][src.methods.base][INFO] - Extracting features: 160/803 (20%)
+[2026-01-21 01:46:43,707][src.methods.base][INFO] - Extracting features: 240/803 (30%)
+[2026-01-21 01:46:44,008][src.methods.base][INFO] - Extracting features: 320/803 (40%)
+[2026-01-21 01:46:44,917][src.methods.base][INFO] - Extracting features: 400/803 (50%)
+[2026-01-21 01:46:45,138][src.methods.base][INFO] - Extracting features: 480/803 (60%)
+[2026-01-21 01:46:45,426][src.methods.base][INFO] - Extracting features: 560/803 (70%)
+[2026-01-21 01:46:45,805][src.methods.base][INFO] - Extracting features: 640/803 (80%)
+[2026-01-21 01:46:46,113][src.methods.base][INFO] - Extracting features: 720/803 (90%)
+[2026-01-21 01:46:46,326][src.methods.base][INFO] - Extracting features: 800/803 (100%)
+[2026-01-21 01:46:46,341][src.methods.base][INFO] - Training on 803 samples, feature dim=11264
+[2026-01-21 01:49:30,712][__main__][INFO] - ----------------------------------------
+[2026-01-21 01:49:30,712][__main__][INFO] - [sample] Train AUROC: 1.0000
+[2026-01-21 01:49:30,712][__main__][INFO] - [sample] Train AUPR:  1.0000
+[2026-01-21 01:49:30,712][__main__][INFO] - ----------------------------------------
+[2026-01-21 01:49:30,723][src.methods.base][INFO] - Saved method to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/sample/model.pkl
+[2026-01-21 01:49:30,723][__main__][INFO] - 
+[2026-01-21 01:49:30,723][__main__][INFO] - [sample] Performance Metrics:
+[2026-01-21 01:49:30,723][__main__][INFO] -   Training Time: 5.53s
+[2026-01-21 01:49:30,723][__main__][INFO] -   Peak CPU Memory: 142.0 MB
+[2026-01-21 01:49:30,723][__main__][INFO] -   Peak GPU Memory: 0.0 MB
+[2026-01-21 01:49:30,723][__main__][INFO] -   Model Size: 0.35 MB
+[2026-01-21 01:49:30,749][__main__][INFO] - [sample] Model saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/sample/model.pkl
+[2026-01-21 01:49:30,749][__main__][INFO] - [sample] Metrics saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/sample/train_metrics.json
+[2026-01-21 01:49:30,749][__main__][INFO] - 
+[2026-01-21 01:49:30,749][__main__][INFO] - ============================================================
+[2026-01-21 01:49:30,749][__main__][INFO] - Training Summary
+[2026-01-21 01:49:30,749][__main__][INFO] - ============================================================
+[2026-01-21 01:49:30,749][__main__][INFO] -   [sample] AUROC: 1.0000, AUPR: 1.0000
+[2026-01-21 01:49:30,749][__main__][INFO] - ============================================================

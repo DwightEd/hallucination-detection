@@ -1,0 +1,56 @@
+[2026-01-21 01:49:47,953][__main__][INFO] - ============================================================
+[2026-01-21 01:49:47,954][__main__][INFO] - Train Probe: lookback_lens
+[2026-01-21 01:49:47,954][__main__][INFO] - Dataset: ragtruth
+[2026-01-21 01:49:47,954][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-21 01:49:47,954][__main__][INFO] - Task: QA
+[2026-01-21 01:49:47,954][__main__][INFO] - ============================================================
+[2026-01-21 01:49:52,757][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-21 01:49:52,757][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-21 01:49:52,757][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-21 01:49:52,757][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-21 01:57:41,224][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-21 01:57:41,225][src.features.loader][INFO] - Token-level labels: 347/347 hallucinated samples
+[2026-01-21 01:57:41,343][__main__][INFO] - Loaded 803 samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA
+[2026-01-21 01:57:41,344][__main__][INFO] - Train: 803 (347 positive)
+[2026-01-21 01:57:41,344][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-21 01:57:41,344][__main__][INFO] - 
+[2026-01-21 01:57:41,344][__main__][INFO] - ============================================================
+[2026-01-21 01:57:41,344][__main__][INFO] - Training at level: token
+[2026-01-21 01:57:41,344][__main__][INFO] - ============================================================
+[2026-01-21 01:57:41,345][__main__][INFO] - Token-level labels: 347/347 hallucinated samples
+[2026-01-21 01:57:41,345][__main__][INFO] - Training lookback_lens at token level...
+[2026-01-21 01:57:41,422][src.methods.lookback_lens][INFO] - Training Lookback Lens at token level...
+[2026-01-21 01:58:23,405][src.methods.lookback_lens][INFO] - Token-level training data: 74397 tokens, 19149 positive
+[2026-01-21 01:58:23,405][src.methods.lookback_lens][INFO] -   Samples with precise labels: 295
+[2026-01-21 01:58:23,405][src.methods.lookback_lens][INFO] -   Skipped samples (insufficient response): 150
+[2026-01-21 01:58:45,153][src.methods.base][INFO] - Extracting features: 0/803 (0%)
+[2026-01-21 01:58:45,626][src.methods.base][INFO] - Extracting features: 80/803 (10%)
+[2026-01-21 01:58:45,936][src.methods.base][INFO] - Extracting features: 160/803 (20%)
+[2026-01-21 01:58:46,332][src.methods.base][INFO] - Extracting features: 240/803 (30%)
+[2026-01-21 01:58:46,803][src.methods.base][INFO] - Extracting features: 320/803 (40%)
+[2026-01-21 01:58:47,205][src.methods.base][INFO] - Extracting features: 400/803 (50%)
+[2026-01-21 01:58:47,629][src.methods.base][INFO] - Extracting features: 480/803 (60%)
+[2026-01-21 01:58:48,119][src.methods.base][INFO] - Extracting features: 560/803 (70%)
+[2026-01-21 01:58:48,516][src.methods.base][INFO] - Extracting features: 640/803 (80%)
+[2026-01-21 01:58:48,923][src.methods.base][INFO] - Extracting features: 720/803 (90%)
+[2026-01-21 01:58:49,340][src.methods.base][INFO] - Extracting features: 800/803 (100%)
+[2026-01-21 01:58:49,434][src.methods.base][INFO] - Training on 803 samples, feature dim=11264
+[2026-01-21 01:59:58,232][__main__][INFO] - ----------------------------------------
+[2026-01-21 01:59:58,233][__main__][INFO] - [token] Train AUROC: 0.8715
+[2026-01-21 01:59:58,233][__main__][INFO] - [token] Train AUPR:  0.8713
+[2026-01-21 01:59:58,233][__main__][INFO] - ----------------------------------------
+[2026-01-21 01:59:58,248][src.methods.base][INFO] - Saved method to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/token/model.pkl
+[2026-01-21 01:59:58,248][__main__][INFO] - 
+[2026-01-21 01:59:58,248][__main__][INFO] - [token] Performance Metrics:
+[2026-01-21 01:59:58,248][__main__][INFO] -   Training Time: 70.75s
+[2026-01-21 01:59:58,248][__main__][INFO] -   Peak CPU Memory: 2470.7 MB
+[2026-01-21 01:59:58,248][__main__][INFO] -   Peak GPU Memory: 0.0 MB
+[2026-01-21 01:59:58,248][__main__][INFO] -   Model Size: 0.35 MB
+[2026-01-21 01:59:58,279][__main__][INFO] - [token] Model saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/token/model.pkl
+[2026-01-21 01:59:58,280][__main__][INFO] - [token] Metrics saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lookback_lens/token/train_metrics.json
+[2026-01-21 01:59:58,280][__main__][INFO] - 
+[2026-01-21 01:59:58,280][__main__][INFO] - ============================================================
+[2026-01-21 01:59:58,280][__main__][INFO] - Training Summary
+[2026-01-21 01:59:58,280][__main__][INFO] - ============================================================
+[2026-01-21 01:59:58,280][__main__][INFO] -   [token] AUROC: 0.8715, AUPR: 0.8713
+[2026-01-21 01:59:58,280][__main__][INFO] - ============================================================
