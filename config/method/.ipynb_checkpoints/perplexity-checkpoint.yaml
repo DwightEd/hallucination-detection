@@ -1,0 +1,60 @@
+# Perplexity - 基于困惑度的幻觉检测
+# 论文: "Out-of-Distribution Detection and Selective Generation for Conditional Language Models"
+# (Ren et al., ICLR 2023 Spotlight, Google Research)
+#
+# 特点:
+# - Training-free baseline: 无需额外训练
+# - 使用 token 概率计算 perplexity 和 entropy
+# - 支持多种聚合策略 (mean, max, percentile)
+# - 可与 entropy 特征组合提升效果
+
+name: perplexity
+cls_path: src.methods.perplexity.PerplexityMethod
+classifier: logistic
+random_seed: ${seed}
+
+# -----------------------------------------------------------------------------
+# 训练级别
+# - sample: 样本级别检测 (默认)
+# - token:  Token级别检测
+# - both:   同时支持
+# -----------------------------------------------------------------------------
+level: sample
+
+# 特征需求: token_probs 是必需的
+required_features:
+  attention_diags: false
+  laplacian_diags: false
+  attention_entropy: false
+  full_attention: false
+  hidden_states: false
+  token_probs: true           # 必需: token 概率
+  token_entropy: true         # 可选但推荐: 用于增强特征
+
+params:
+  # 聚合方式: mean (平均), max (最大, 捕捉局部幻觉), percentile (百分位)
+  aggregation: mean
+  
+  # 是否使用熵特征 (推荐开启)
+  use_entropy: true
+  
+  # 是否使用百分位特征 (增加特征维度但可能提升效果)
+  use_percentiles: true
+  
+  # 是否只使用 response 部分 (推荐开启)
+  response_only: true
+  
+  # 分类器参数
+  classifier_params:
+    max_iter: 1000
+    C: 1.0
+    class_weight: balanced
+
+# =============================================================================
+# Training-Free 模式
+# =============================================================================
+# Perplexity 方法也支持 training-free 检测，直接使用:
+#   from src.methods.perplexity import compute_perplexity_score
+#   score = compute_perplexity_score(token_probs, method="max")
+#
+# 这在没有标注数据时特别有用。

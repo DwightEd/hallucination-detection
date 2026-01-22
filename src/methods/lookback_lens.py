@@ -1,33 +1,153 @@
-"""Lookback Lens hallucination detection method.
+"""Lookback Lens: Attention Ratio-based Hallucination Detection.
 
-Based on attention ratio analysis between response and context tokens.
+基于论文: "Lookback Lens: Detecting and Mitigating Contextual Hallucinations 
+in Large Language Models Using Only Attention Maps" (EMNLP 2024)
+代码参考: https://github.com/voidism/Lookback-Lens
 
-修复内容:
-- Token-level 分类器保存/加载 (关键修复)
-- is_token_fitted 状态正确持久化
-- _token_classifier 和 _token_scaler 保存到 model.pkl
+核心思想:
+- 幻觉 token 通常对 context 的注意力较低
+- Lookback ratio = A_context / (A_context + A_new)
+- 支持 token 级别和 sample 级别检测
+- 支持 Guided Decoding 缓解幻觉
+
+⚠️ 关键修正:
+1. Lookback ratio 计算: 对每个 response token t，计算其对 context (prompt) 的注意力比率
+2. 特征维度: 每个 (layer, head) 产生一个 lookback ratio
+3. Span-level 聚合: 使用滑动窗口 (默认 size=8)
+4. 分类器: LogisticRegression
 """
-
 from __future__ import annotations
+from typing import Optional, List, Dict, Any, Tuple
 import logging
-import pickle
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Union
-
 import numpy as np
 import torch
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
-from src.core import ExtractedFeatures, Prediction, MethodConfig, METHODS
+from src.core import ExtractedFeatures, MethodConfig, METHODS, Prediction
 from .base import BaseMethod
 
 logger = logging.getLogger(__name__)
 
 
-class InsufficientResponseError(Exception):
-    """Response too short for meaningful analysis."""
+class InsufficientResponseError(ValueError):
+    """当 response 长度不足以提取特征时抛出。"""
     pass
+
+
+# =============================================================================
+# 核心算法 - Lookback Ratio 计算
+# =============================================================================
+
+def compute_lookback_ratio_per_token(
+    full_attention: np.ndarray,
+    prompt_len: int,
+    response_len: int,
+) -> np.ndarray:
+    """计算每个 response token 的 lookback ratio。
+    
+    原论文公式: LR_t^{l,h} = A_context / (A_context + A_new)
+    其中:
+    - A_context = sum_{i < prompt_len} A[t, i]  (对 context 的注意力)
+    - A_new = sum_{prompt_len <= i < t} A[t, i]  (对新生成 token 的注意力)
+    
+    Args:
+        full_attention: [n_layers, n_heads, seq_len, seq_len]
+        prompt_len: Prompt 长度
+        response_len: Response 长度
+        
+    Returns:
+        Lookback ratios [n_layers, n_heads, response_len]
+    """
+    n_layers, n_heads, seq_len, _ = full_attention.shape
+    
+    resp_start = prompt_len
+    resp_end = min(prompt_len + response_len, seq_len)
+    actual_resp_len = resp_end - resp_start
+    
+    if actual_resp_len <= 0:
+        raise InsufficientResponseError(
+            f"Invalid response length: {actual_resp_len}"
+        )
+    
+    lookback_ratios = np.zeros((n_layers, n_heads, actual_resp_len), dtype=np.float32)
+    
+    for t_idx, t in enumerate(range(resp_start, resp_end)):
+        for layer in range(n_layers):
+            for head in range(n_heads):
+                # 对 context (prompt) 的注意力
+                if prompt_len > 0:
+                    attn_context = full_attention[layer, head, t, :prompt_len].sum()
+                else:
+                    attn_context = 0.0
+                
+                # 对新生成 token (prompt_len 到 t-1) 的注意力
+                if t > prompt_len:
+                    attn_new = full_attention[layer, head, t, prompt_len:t].sum()
+                else:
+                    attn_new = 0.0
+                
+                # Lookback ratio
+                total = attn_context + attn_new + 1e-10
+                lookback_ratios[layer, head, t_idx] = attn_context / total
+    
+    return lookback_ratios
+
+
+def compute_token_lookback_ratios(
+    attn_diags: torch.Tensor,
+    prompt_len: int,
+    response_len: int,
+) -> torch.Tensor:
+    """从注意力对角线近似计算 lookback ratio (降级模式)。
+    
+    当没有完整注意力矩阵时，使用对角线值作为近似。
+    
+    Args:
+        attn_diags: [n_layers, n_heads, seq_len]
+        prompt_len: Prompt 长度
+        response_len: Response 长度
+        
+    Returns:
+        Token-level features [resp_len, n_layers * n_heads * 2]
+    """
+    n_layers, n_heads, seq_len = attn_diags.shape
+    attn_diags = attn_diags.float()
+    
+    resp_start = prompt_len
+    resp_end = min(prompt_len + response_len, seq_len)
+    actual_resp_len = resp_end - resp_start
+    
+    if actual_resp_len <= 0:
+        raise InsufficientResponseError(
+            f"Invalid response length: actual_resp_len={actual_resp_len}"
+        )
+    
+    token_features = []
+    
+    for t in range(resp_start, resp_end):
+        diag_at_t = attn_diags[:, :, t]  # [n_layers, n_heads]
+        
+        # Context 部分的统计
+        if t > 0:
+            context_attn = attn_diags[:, :, :min(t, prompt_len)].mean(dim=-1)
+        else:
+            context_attn = torch.zeros(n_layers, n_heads)
+        
+        # 新生成部分的统计
+        if t > prompt_len:
+            new_attn = attn_diags[:, :, prompt_len:t].mean(dim=-1)
+        else:
+            new_attn = torch.zeros(n_layers, n_heads)
+        
+        # Lookback ratio
+        total = context_attn + new_attn + 1e-8
+        lookback_ratio = context_attn / total
+        
+        feat = torch.cat([diag_at_t.flatten(), lookback_ratio.flatten()])
+        token_features.append(feat)
+    
+    return torch.stack(token_features)
 
 
 def compute_lookback_ratio(
@@ -35,39 +155,33 @@ def compute_lookback_ratio(
     prompt_len: int,
     response_len: int,
 ) -> np.ndarray:
-    """Compute lookback ratio features.
+    """计算 sample-level lookback ratio 特征。
     
     Args:
-        attn_diags: Attention diagonal values [n_layers, n_heads, seq_len]
-        prompt_len: Length of prompt
-        response_len: Length of response
+        attn_diags: [n_layers, n_heads, seq_len]
+        prompt_len: Prompt 长度
+        response_len: Response 长度
         
     Returns:
-        Feature vector for lookback ratios
+        Feature vector [n_layers * n_heads * 4]
     """
-    if isinstance(attn_diags, np.ndarray):
-        attn_diags = torch.from_numpy(attn_diags)
-    
     n_layers, n_heads, seq_len = attn_diags.shape
+    attn_diags = attn_diags.float()
     
-    # Response region
-    resp_start = prompt_len
-    resp_end = min(prompt_len + response_len, seq_len)
-    resp_len_actual = resp_end - resp_start
+    prompt_diag = attn_diags[:, :, :prompt_len]
     
-    if resp_len_actual < 1:
-        return np.zeros(n_layers * n_heads * 4, dtype=np.float32)
+    if prompt_len + response_len <= seq_len:
+        response_diag = attn_diags[:, :, prompt_len:prompt_len + response_len]
+    else:
+        response_diag = attn_diags[:, :, prompt_len:]
     
-    # Get response diagonal values
-    resp_diag = attn_diags[:, :, resp_start:resp_end].float()
+    p_mean = prompt_diag.mean(dim=-1) if prompt_diag.shape[-1] > 0 else torch.zeros(n_layers, n_heads)
+    r_mean = response_diag.mean(dim=-1) if response_diag.shape[-1] > 0 else torch.zeros(n_layers, n_heads)
     
-    # Compute statistics
-    diag_mean = resp_diag.mean(dim=-1)
-    diag_std = resp_diag.std(dim=-1) if resp_len_actual > 1 else torch.zeros_like(diag_mean)
-    diag_max = resp_diag.max(dim=-1).values
-    diag_min = resp_diag.min(dim=-1).values
+    ratio = p_mean / (r_mean + 1e-8)
+    diff = p_mean - r_mean
     
-    features = torch.stack([diag_mean, diag_std, diag_max, diag_min], dim=-1)
+    features = torch.stack([p_mean, r_mean, ratio, diff], dim=-1)
     return features.cpu().numpy().flatten().astype(np.float32)
 
 
@@ -77,118 +191,119 @@ def compute_attention_patterns(
     prompt_len: int,
     response_len: int,
 ) -> np.ndarray:
-    """Compute attention pattern features."""
-    if isinstance(attn_diags, np.ndarray):
-        attn_diags = torch.from_numpy(attn_diags)
-    
+    """计算综合注意力模式特征。"""
     n_layers, n_heads, seq_len = attn_diags.shape
     
     resp_start = prompt_len
     resp_end = min(prompt_len + response_len, seq_len)
-    resp_len_actual = resp_end - resp_start
     
-    if resp_len_actual < 2:
-        n_features = n_layers * n_heads * (5 + (2 if attn_entropy is not None else 0))
-        return np.zeros(n_features, dtype=np.float32)
+    if resp_end <= resp_start:
+        resp_start = 0
+        resp_end = seq_len
     
     resp_diag = attn_diags[:, :, resp_start:resp_end].float()
+    resp_len_actual = resp_diag.shape[-1]
     
-    # Statistics
-    diag_mean = resp_diag.mean(dim=-1)
-    diag_std = resp_diag.std(dim=-1)
-    diag_max = resp_diag.max(dim=-1).values
-    diag_min = resp_diag.min(dim=-1).values
+    if resp_len_actual <= 1:
+        n_features = 5 * n_layers * n_heads
+        if attn_entropy is not None:
+            n_features += 2 * n_layers * n_heads
+        
+        if resp_len_actual == 1:
+            diag_val = resp_diag.squeeze(-1)
+            diag_features = torch.stack([
+                diag_val, torch.zeros_like(diag_val),
+                diag_val, diag_val, torch.zeros_like(diag_val),
+            ], dim=-1)
+            
+            if attn_entropy is not None:
+                resp_entropy = attn_entropy[:, :, resp_start:resp_end].float()
+                ent_val = resp_entropy.squeeze(-1)
+                ent_features = torch.stack([ent_val, torch.zeros_like(ent_val)], dim=-1)
+                features = torch.cat([diag_features, ent_features], dim=-1)
+            else:
+                features = diag_features
+            
+            return features.cpu().numpy().flatten().astype(np.float32)
+        
+        return np.zeros(n_features, dtype=np.float32)
+    
+    resp_np = resp_diag.cpu().numpy()
+    
+    diag_mean = np.mean(resp_np, axis=-1)
+    diag_std = np.std(resp_np, axis=-1)
+    diag_max = np.max(resp_np, axis=-1)
+    diag_min = np.min(resp_np, axis=-1)
     
     # Trend
-    x = torch.arange(resp_len_actual, dtype=resp_diag.dtype, device=resp_diag.device)
-    x_mean = x.mean()
-    y_mean = resp_diag.mean(dim=-1, keepdim=True)
-    x_centered = x - x_mean
-    y_centered = resp_diag - y_mean
-    numerator = (x_centered * y_centered).sum(dim=-1)
-    denominator = (x_centered ** 2).sum() + 1e-8
-    trend = numerator / denominator
+    x = np.arange(resp_len_actual)
+    diag_trend = np.zeros((n_layers, n_heads))
+    for l in range(n_layers):
+        for h in range(n_heads):
+            if resp_len_actual > 1:
+                diag_trend[l, h] = np.polyfit(x, resp_np[l, h], 1)[0]
     
-    diag_features = torch.stack([diag_mean, diag_std, diag_max, diag_min, trend], dim=-1)
+    diag_features = np.stack([diag_mean, diag_std, diag_max, diag_min, diag_trend], axis=-1)
     
     if attn_entropy is not None:
-        if isinstance(attn_entropy, np.ndarray):
-            attn_entropy = torch.from_numpy(attn_entropy)
-        resp_entropy = attn_entropy[:, :, resp_start:resp_end].float()
-        if resp_entropy.shape[-1] > 1:
-            ent_mean = resp_entropy.mean(dim=-1)
-            ent_std = resp_entropy.std(dim=-1)
-        elif resp_entropy.shape[-1] == 1:
-            ent_mean = resp_entropy.squeeze(-1)
-            ent_std = torch.zeros_like(ent_mean)
-        else:
-            ent_mean = torch.zeros(n_layers, n_heads)
-            ent_std = torch.zeros(n_layers, n_heads)
-        
-        ent_features = torch.stack([ent_mean, ent_std], dim=-1)
-        all_features = torch.cat([diag_features, ent_features], dim=-1)
+        resp_entropy = attn_entropy[:, :, resp_start:resp_end].float().cpu().numpy()
+        ent_mean = np.mean(resp_entropy, axis=-1)
+        ent_std = np.std(resp_entropy, axis=-1)
+        ent_features = np.stack([ent_mean, ent_std], axis=-1)
+        features = np.concatenate([diag_features, ent_features], axis=-1)
     else:
-        all_features = diag_features
+        features = diag_features
     
-    return all_features.cpu().numpy().flatten().astype(np.float32)
+    return features.flatten().astype(np.float32)
 
 
-def compute_token_lookback_ratios(
-    attn_diags: torch.Tensor,
-    prompt_len: int,
-    response_len: int,
-    min_response_tokens: int = 3,
-) -> torch.Tensor:
-    """Compute per-token lookback ratio features.
+def aggregate_span_features(
+    token_features: np.ndarray,
+    window_size: int = 8,
+    aggregation: str = "mean",
+) -> np.ndarray:
+    """将 token-level 特征聚合到 span-level。
     
     Args:
-        attn_diags: [n_layers, n_heads, seq_len]
-        prompt_len: Length of prompt
-        response_len: Length of response
-        min_response_tokens: Minimum response tokens required
+        token_features: [n_tokens, feature_dim]
+        window_size: 滑动窗口大小 (原论文默认 8)
+        aggregation: 聚合方式 (mean, max)
         
     Returns:
-        [resp_len, n_features] tensor of per-token features
-        
-    Raises:
-        InsufficientResponseError: If response too short
+        Span-level features [n_spans, feature_dim]
     """
-    if isinstance(attn_diags, np.ndarray):
-        attn_diags = torch.from_numpy(attn_diags)
+    n_tokens, feature_dim = token_features.shape
     
-    n_layers, n_heads, seq_len = attn_diags.shape
+    if n_tokens <= window_size:
+        if aggregation == "mean":
+            return token_features.mean(axis=0, keepdims=True)
+        else:
+            return token_features.max(axis=0, keepdims=True)
     
-    resp_start = prompt_len
-    resp_end = min(prompt_len + response_len, seq_len)
-    resp_len_actual = resp_end - resp_start
+    spans = []
+    for i in range(0, n_tokens - window_size + 1):
+        window = token_features[i:i + window_size]
+        if aggregation == "mean":
+            span_feat = window.mean(axis=0)
+        else:
+            span_feat = window.max(axis=0)
+        spans.append(span_feat)
     
-    if resp_len_actual < min_response_tokens:
-        raise InsufficientResponseError(
-            f"Response length {resp_len_actual} < minimum {min_response_tokens}"
-        )
-    
-    # Extract response diagonal values
-    resp_diag = attn_diags[:, :, resp_start:resp_end].float()  # [n_layers, n_heads, resp_len]
-    
-    # Compute per-token features
-    # For each token, use diagonal value across all layers and heads
-    token_features = resp_diag.permute(2, 0, 1)  # [resp_len, n_layers, n_heads]
-    token_features = token_features.reshape(resp_len_actual, -1)  # [resp_len, n_layers * n_heads]
-    
-    return token_features
+    return np.array(spans)
 
+
+# =============================================================================
+# Lookback Lens Method 类
+# =============================================================================
 
 @METHODS.register("lookback_lens", aliases=["lookback", "attention_ratio"])
 class LookbackLensMethod(BaseMethod):
-    """Lookback Lens hallucination detection.
+    """Lookback Lens 幻觉检测方法。
     
-    支持两种级别:
+    支持:
     - sample: 样本级别特征聚合 + LogisticRegression
-    - token: 逐token特征 + 分类器（需要 hallucination_labels）
-    - both: 优先token，无标签时回退sample
-    
-    Attributes:
-        supports_token_level: True - 原论文支持 token 级别检测
+    - token: 逐 token 特征 + 分类器
+    - both: 优先 token，无标签时回退 sample
     """
     
     supports_token_level = True
@@ -199,16 +314,51 @@ class LookbackLensMethod(BaseMethod):
         params = self.config.params or {}
         self.use_entropy = params.get("use_entropy", True)
         self.use_trends = params.get("use_trends", True)
+        self.window_size = params.get("window_size", 8)
         
-        # Token-level classifier (关键修复: 初始化属性)
         self._token_classifier = None
         self._token_scaler = StandardScaler()
-        self.is_token_fitted = False  # 显式初始化
     
     def extract_method_features(self, features: ExtractedFeatures) -> np.ndarray:
-        """Extract sample-level lookback features."""
+        """提取 sample-level lookback 特征。"""
+        # 优先使用完整注意力
+        full_attention = features.full_attention
+        if full_attention is None:
+            full_attention = features.get_full_attention()
+        
+        if full_attention is not None:
+            if isinstance(full_attention, torch.Tensor):
+                full_attention = full_attention.cpu().numpy()
+            
+            try:
+                # 计算精确的 lookback ratio
+                lookback_ratios = compute_lookback_ratio_per_token(
+                    full_attention,
+                    features.prompt_len,
+                    features.response_len,
+                )
+                
+                # 聚合到 sample level
+                feat_vec = np.concatenate([
+                    lookback_ratios.mean(axis=-1).flatten(),  # 平均
+                    lookback_ratios.std(axis=-1).flatten(),   # 标准差
+                    lookback_ratios.min(axis=-1).flatten(),   # 最小值
+                    lookback_ratios.max(axis=-1).flatten(),   # 最大值
+                ])
+                
+                features.release_large_features()
+                
+                if np.any(~np.isfinite(feat_vec)):
+                    feat_vec = np.nan_to_num(feat_vec, nan=0.0, posinf=1.0, neginf=-1.0)
+                
+                return feat_vec
+                
+            except InsufficientResponseError:
+                pass
+        
+        # 降级到对角线模式
         if features.attn_diags is None:
-            raise ValueError("LookbackLens requires attn_diags")
+            raise ValueError("LookbackLens requires full_attention or attn_diags")
         
         attn_diags = features.attn_diags
         attn_entropy = features.attn_entropy if self.use_entropy else None
@@ -233,17 +383,33 @@ class LookbackLensMethod(BaseMethod):
         return feat_vec
     
     def extract_token_features(self, features: ExtractedFeatures) -> np.ndarray:
-        """Extract token-level lookback features.
+        """提取 token-level lookback 特征。"""
+        # 优先使用完整注意力
+        full_attention = features.full_attention
+        if full_attention is None:
+            full_attention = features.get_full_attention()
         
-        Returns:
-            [resp_len, feature_dim] token-level features
+        if full_attention is not None:
+            if isinstance(full_attention, torch.Tensor):
+                full_attention = full_attention.cpu().numpy()
             
-        Raises:
-            ValueError: When attn_diags is not available
-            InsufficientResponseError: When response length is insufficient
-        """
+            lookback_ratios = compute_lookback_ratio_per_token(
+                full_attention,
+                features.prompt_len,
+                features.response_len,
+            )
+            
+            # [n_layers, n_heads, resp_len] -> [resp_len, n_layers * n_heads]
+            token_features = lookback_ratios.transpose(2, 0, 1).reshape(
+                lookback_ratios.shape[2], -1
+            )
+            
+            features.release_large_features()
+            return token_features
+        
+        # 降级模式
         if features.attn_diags is None:
-            raise ValueError("LookbackLens requires attn_diags")
+            raise ValueError("LookbackLens requires full_attention or attn_diags")
         
         attn_diags = features.attn_diags
         if isinstance(attn_diags, np.ndarray):
@@ -261,105 +427,53 @@ class LookbackLensMethod(BaseMethod):
         labels: Optional[List[int]] = None,
         cv: bool = True,
     ) -> Dict[str, float]:
-        """Train the method based on level."""
+        """训练方法。"""
         level = self.config.level
         
-        if level == "token":
-            return self._fit_token_level(features_list, labels)
-        elif level == "both":
-            has_token_labels = any(f.hallucination_labels is not None for f in features_list)
-            if has_token_labels:
-                return self._fit_token_level(features_list, labels)
-            else:
-                logger.info("No token labels available, falling back to sample-level")
-                return super().fit(features_list, labels, cv)
-        else:
-            return super().fit(features_list, labels, cv)
-    
-    def _fit_token_level(
-        self,
-        features_list: List[ExtractedFeatures],
-        labels: Optional[List[int]] = None,
-    ) -> Dict[str, float]:
-        """Train token-level classifier."""
-        logger.info("Training Lookback Lens at token level...")
-        
-        all_X = []
-        all_y = []
-        n_samples_with_labels = 0
-        n_skipped = 0
-        
-        for i, feat in enumerate(features_list):
-            try:
-                token_features = self.extract_token_features(feat)
-                
-                if feat.hallucination_labels is not None:
-                    token_labels = np.array(feat.hallucination_labels)
-                    resp_start = feat.prompt_len
-                    resp_end = min(feat.prompt_len + feat.response_len, len(token_labels))
-                    token_labels = token_labels[resp_start:resp_end]
+        if level in ("token", "both"):
+            # 尝试 token-level 训练
+            token_X = []
+            token_y = []
+            
+            for i, feat in enumerate(features_list):
+                try:
+                    token_feat = self.extract_token_features(feat)
                     
-                    min_len = min(len(token_features), len(token_labels))
-                    if min_len > 0:
-                        all_X.append(token_features[:min_len])
-                        all_y.append(token_labels[:min_len])
-                        n_samples_with_labels += 1
-                else:
-                    sample_label = labels[i] if labels else feat.label
-                    if sample_label is not None and sample_label == 1:
-                        token_labels = np.ones(len(token_features))
-                        all_X.append(token_features)
-                        all_y.append(token_labels)
-                    elif sample_label == 0:
-                        token_labels = np.zeros(len(token_features))
-                        all_X.append(token_features)
-                        all_y.append(token_labels)
-                        
-            except InsufficientResponseError as e:
-                logger.debug(f"Skipping sample {feat.sample_id}: {e}")
-                n_skipped += 1
-            except Exception as e:
-                logger.warning(f"Failed to extract features for {feat.sample_id}: {e}")
-                n_skipped += 1
+                    # 获取 token-level 标签
+                    token_labels = getattr(feat, 'hallucination_labels', None)
+                    
+                    if token_labels is not None and len(token_labels) == len(token_feat):
+                        token_X.append(token_feat)
+                        token_y.append(token_labels)
+                    elif labels is not None:
+                        # 使用 sample-level 标签扩展
+                        sample_label = labels[i] if i < len(labels) else feat.label
+                        if sample_label is not None:
+                            token_X.append(token_feat)
+                            token_y.append([sample_label] * len(token_feat))
+                except (InsufficientResponseError, Exception) as e:
+                    logger.debug(f"Token feature extraction failed: {e}")
+            
+            if len(token_X) > 0:
+                token_X = np.vstack(token_X)
+                token_y = np.concatenate(token_y)
+                
+                token_X_scaled = self._token_scaler.fit_transform(token_X)
+                
+                self._token_classifier = LogisticRegression(
+                    max_iter=1000,
+                    class_weight='balanced',
+                    random_state=self.config.random_seed or 42,
+                )
+                self._token_classifier.fit(token_X_scaled, token_y)
+                
+                logger.info(f"Token-level classifier trained on {len(token_X)} tokens")
         
-        if not all_X:
-            raise ValueError("No valid token features extracted")
-        
-        X = np.vstack(all_X)
-        y = np.concatenate(all_y)
-        
-        logger.info(f"Token-level training data: {len(X)} tokens, {y.sum():.0f} positive")
-        logger.info(f"  Samples with precise labels: {n_samples_with_labels}")
-        if n_skipped > 0:
-            logger.info(f"  Skipped samples: {n_skipped}")
-        
-        # Scale and train
-        X_scaled = self._token_scaler.fit_transform(X)
-        
-        self._token_classifier = LogisticRegression(
-            max_iter=1000, 
-            class_weight="balanced", 
-            random_state=self.config.random_seed
-        )
-        self._token_classifier.fit(X_scaled, y)
-        
-        # ✅ 关键修复: 设置 token-fitted 标志
-        self.is_token_fitted = True
-        
-        logger.info(f"Token-level classifier trained. is_token_fitted = {self.is_token_fitted}")
-        
-        # Also train sample-level classifier for fallback
-        super().fit(features_list, labels, cv=False)
-        
-        return {
-            "n_tokens": len(X),
-            "n_positive_tokens": int(y.sum()),
-            "n_samples_with_labels": n_samples_with_labels,
-            "n_skipped": n_skipped,
-        }
+        # Sample-level 训练
+        return super().fit(features_list, labels, cv)
     
     def predict(self, features: ExtractedFeatures) -> Prediction:
-        """Predict based on level."""
+        """预测单个样本。"""
         level = self.config.level
         
         if level in ("token", "both") and self._token_classifier is not None:
@@ -382,105 +496,18 @@ class LookbackLensMethod(BaseMethod):
                     label=1 if score > 0.5 else 0,
                     confidence=abs(score - 0.5) * 2,
                 )
-            except InsufficientResponseError as e:
-                logger.debug(f"Token prediction skipped: {e}, falling back to sample")
-            except Exception as e:
-                logger.warning(f"Token prediction failed: {e}, falling back to sample")
+            except (InsufficientResponseError, Exception) as e:
+                logger.debug(f"Token prediction failed: {e}, falling back to sample")
         
         return super().predict(features)
-    
-    # =========================================================================
-    # ✅ 关键修复: 重写 save() 和 load() 方法保存 token-level 组件
-    # =========================================================================
-    
-    def save(self, path: Union[str, Path]) -> None:
-        """保存方法到文件，包含 token-level 组件。
-        
-        修复: 原版本没有保存 _token_classifier 和 _token_scaler，
-        导致加载后 is_token_fitted 总是 False。
-        """
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        
-        state = {
-            # 配置
-            "config": self.config,
-            
-            # Sample-level 组件
-            "classifier": self.classifier,
-            "scaler": self.scaler,
-            "is_fitted": self.is_fitted,
-            "feature_dim": self._feature_dim,
-            
-            # Token-level 组件 (关键修复)
-            "is_token_fitted": self.is_token_fitted,
-            "_token_classifier": self._token_classifier,
-            "_token_scaler": self._token_scaler,
-            
-            # 方法参数
-            "use_entropy": self.use_entropy,
-            "use_trends": self.use_trends,
-        }
-        
-        with open(path, "wb") as f:
-            pickle.dump(state, f)
-        
-        logger.info(
-            f"Saved LookbackLens to {path} "
-            f"(fitted={self.is_fitted}, token_fitted={self.is_token_fitted})"
-        )
-    
-    def load(self, path: Union[str, Path]) -> None:
-        """从文件加载方法，包含 token-level 组件。
-        
-        修复: 原版本没有恢复 _token_classifier 和 _token_scaler。
-        """
-        path = Path(path)
-        
-        if not path.exists():
-            raise FileNotFoundError(f"Method file not found: {path}")
-        
-        with open(path, "rb") as f:
-            state = pickle.load(f)
-        
-        # 配置
-        self.config = state["config"]
-        
-        # Sample-level 组件
-        self.classifier = state["classifier"]
-        self.scaler = state["scaler"]
-        self.is_fitted = state["is_fitted"]
-        self._feature_dim = state.get("feature_dim")
-        
-        # Token-level 组件 (关键修复)
-        self.is_token_fitted = state.get("is_token_fitted", False)
-        self._token_classifier = state.get("_token_classifier")
-        self._token_scaler = state.get("_token_scaler", StandardScaler())
-        
-        # 方法参数
-        self.use_entropy = state.get("use_entropy", True)
-        self.use_trends = state.get("use_trends", True)
-        
-        # 验证状态一致性
-        if self.is_token_fitted and self._token_classifier is None:
-            logger.warning(
-                "is_token_fitted=True but _token_classifier is None. "
-                "Resetting to is_token_fitted=False."
-            )
-            self.is_token_fitted = False
-        
-        logger.info(
-            f"Loaded LookbackLens from {path} "
-            f"(fitted={self.is_fitted}, token_fitted={self.is_token_fitted})"
-        )
 
 
 @METHODS.register("attention_stats", aliases=["attn_stats"])
 class AttentionStatsMethod(BaseMethod):
-    """Simple attention statistics-based detection."""
+    """简单的注意力统计特征方法。"""
     
     def extract_method_features(self, features: ExtractedFeatures) -> np.ndarray:
-        """Extract simple attention statistics."""
+        """提取简单注意力统计特征。"""
         if features.attn_diags is None:
             raise ValueError("AttentionStats requires attn_diags")
         
@@ -488,20 +515,23 @@ class AttentionStatsMethod(BaseMethod):
         if isinstance(attn_diags, np.ndarray):
             attn_diags = torch.from_numpy(attn_diags)
         
-        # Global statistics
+        n_layers, n_heads, seq_len = attn_diags.shape
+        attn_diags = attn_diags.float()
+        
+        # 全局统计
         global_mean = attn_diags.mean().item()
         global_std = attn_diags.std().item()
         global_max = attn_diags.max().item()
         global_min = attn_diags.min().item()
         
-        # Per-layer statistics
+        # 每层统计
         layer_means = attn_diags.mean(dim=(1, 2)).cpu().numpy()
         layer_stds = attn_diags.std(dim=(1, 2)).cpu().numpy()
         
-        feat_vec = np.concatenate([
+        features = np.concatenate([
             [global_mean, global_std, global_max, global_min],
             layer_means,
             layer_stds,
-        ]).astype(np.float32)
+        ])
         
-        return feat_vec
+        return features.astype(np.float32)

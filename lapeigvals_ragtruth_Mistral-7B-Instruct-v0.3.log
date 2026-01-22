@@ -1,0 +1,423 @@
+[2026-01-22 13:43:29,471][__main__][INFO] - ============================================================
+[2026-01-22 13:43:29,471][__main__][INFO] - Train Probe: lapeigvals
+[2026-01-22 13:43:29,471][__main__][INFO] - Dataset: ragtruth
+[2026-01-22 13:43:29,471][__main__][INFO] - Model: Mistral-7B-Instruct-v0.3
+[2026-01-22 13:43:29,472][__main__][INFO] - Task: QA
+[2026-01-22 13:43:29,472][__main__][INFO] - ============================================================
+[2026-01-22 13:43:36,469][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 13:43:36,469][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-22 13:43:36,469][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 13:43:36,469][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 13:43:36,479][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-22 13:43:36,480][__main__][INFO] - Loaded 803 samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA
+[2026-01-22 13:43:36,480][__main__][INFO] - Train: 656 (289 positive)
+[2026-01-22 13:43:36,480][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-22 13:43:36,480][__main__][INFO] - 
+[2026-01-22 13:43:36,480][__main__][INFO] - ============================================================
+[2026-01-22 13:43:36,480][__main__][INFO] - Training at level: sample
+[2026-01-22 13:43:36,480][__main__][INFO] - ============================================================
+[2026-01-22 13:43:36,480][__main__][INFO] - Training lapeigvals at sample level...
+[2026-01-22 13:43:36,567][src.methods.lapeigvals][INFO] - Extracting features: 0/656 (0%)
+[2026-01-22 13:43:36,758][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11858: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:37,634][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11864: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:38,620][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11870: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:39,169][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11876: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:40,049][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11882: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:40,871][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11888: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:42,389][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11894: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:43,086][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11900: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:43,946][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11912: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:44,460][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11918: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:44,855][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11924: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:45,136][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11930: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:45,855][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11936: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:47,231][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11942: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:47,852][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11948: Got unsupported ScalarType BFloat16
+[2026-01-22 13:43:48,275][src.methods.lapeigvals][WARNING] - Feature extraction failed for 11954: Got unsupported ScalarType BFloat16
+[2026-01-22 13:48:06,581][__main__][INFO] - ============================================================
+[2026-01-22 13:48:06,582][__main__][INFO] - Train Probe: lapeigvals
+[2026-01-22 13:48:06,582][__main__][INFO] - Dataset: ragtruth
+[2026-01-22 13:48:06,582][__main__][INFO] - Model: Mistral-7B-Instruct-v0.3
+[2026-01-22 13:48:06,582][__main__][INFO] - Task: QA
+[2026-01-22 13:48:06,582][__main__][INFO] - ============================================================
+[2026-01-22 13:48:13,622][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 13:48:13,623][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-22 13:48:13,623][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 13:48:13,623][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 13:48:13,633][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-22 13:48:13,634][__main__][INFO] - Loaded 803 samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA
+[2026-01-22 13:48:13,634][__main__][INFO] - Train: 656 (289 positive)
+[2026-01-22 13:48:13,634][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-22 13:48:13,634][__main__][INFO] - 
+[2026-01-22 13:48:13,634][__main__][INFO] - ============================================================
+[2026-01-22 13:48:13,634][__main__][INFO] - Training at level: sample
+[2026-01-22 13:48:13,634][__main__][INFO] - ============================================================
+[2026-01-22 13:48:13,634][__main__][INFO] - Training lapeigvals at sample level...
+[2026-01-22 13:48:13,741][src.methods.lapeigvals][INFO] - Extracting features: 0/656 (0%)
+[2026-01-22 13:50:27,993][src.methods.lapeigvals][INFO] - Extracting features: 65/656 (10%)
+[2026-01-22 13:52:48,059][src.methods.lapeigvals][INFO] - Extracting features: 130/656 (20%)
+[2026-01-22 13:54:51,581][src.methods.lapeigvals][INFO] - Extracting features: 195/656 (30%)
+[2026-01-22 13:57:04,071][src.methods.lapeigvals][INFO] - Extracting features: 260/656 (40%)
+[2026-01-22 13:58:49,561][src.methods.lapeigvals][INFO] - Extracting features: 325/656 (50%)
+[2026-01-22 14:00:49,259][src.methods.lapeigvals][INFO] - Extracting features: 390/656 (59%)
+[2026-01-22 14:02:50,040][src.methods.lapeigvals][INFO] - Extracting features: 455/656 (69%)
+[2026-01-22 14:04:47,251][src.methods.lapeigvals][INFO] - Extracting features: 520/656 (79%)
+[2026-01-22 14:06:02,933][src.methods.lapeigvals][INFO] - Extracting features: 585/656 (89%)
+[2026-01-22 14:06:56,205][src.methods.lapeigvals][INFO] - Extracting features: 650/656 (99%)
+[2026-01-22 14:07:01,767][src.methods.lapeigvals][INFO] - Extracted features: (656, 102400), Labels: (656,)
+[2026-01-22 14:07:01,767][src.methods.lapeigvals][INFO] - Class distribution: 0=367, 1=289
+[2026-01-22 14:07:14,813][src.methods.lapeigvals][INFO] - PCA: 102400 -> 512
+[2026-01-22 14:23:03,962][__main__][INFO] - ----------------------------------------
+[2026-01-22 14:23:03,963][__main__][INFO] - [sample] Train AUROC: 0.9725
+[2026-01-22 14:23:03,963][__main__][INFO] - [sample] Train AUPR:  0.9470
+[2026-01-22 14:23:03,963][__main__][INFO] - ----------------------------------------
+[2026-01-22 14:23:05,263][src.methods.lapeigvals][INFO] - Saved method to outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-22 14:23:05,264][__main__][INFO] - 
+[2026-01-22 14:23:05,264][__main__][INFO] - [sample] Performance Metrics:
+[2026-01-22 14:23:05,264][__main__][INFO] -   Training Time: 1141.74s
+[2026-01-22 14:23:05,264][__main__][INFO] -   Peak CPU Memory: 1386.9 MB
+[2026-01-22 14:23:05,264][__main__][INFO] -   Peak GPU Memory: 0.0 MB
+[2026-01-22 14:23:05,264][__main__][INFO] -   Model Size: 202.75 MB
+[2026-01-22 14:23:05,287][__main__][INFO] - [sample] Model saved to: outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-22 14:23:05,287][__main__][INFO] - [sample] Metrics saved to: outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/lapeigvals/sample/train_metrics.json
+[2026-01-22 14:23:05,290][__main__][INFO] - 
+[2026-01-22 14:23:05,291][__main__][INFO] - ============================================================
+[2026-01-22 14:23:05,291][__main__][INFO] - Training Summary
+[2026-01-22 14:23:05,291][__main__][INFO] - ============================================================
+[2026-01-22 14:23:05,291][__main__][INFO] -   [sample] AUROC: 0.9725, AUPR: 0.9470
+[2026-01-22 14:23:05,291][__main__][INFO] - ============================================================
+[2026-01-22 14:23:52,707][__main__][INFO] - ============================================================
+[2026-01-22 14:23:52,708][__main__][INFO] - Evaluate: lapeigvals
+[2026-01-22 14:23:52,708][__main__][INFO] - Dataset: ragtruth
+[2026-01-22 14:23:52,708][__main__][INFO] - Model: Mistral-7B-Instruct-v0.3
+[2026-01-22 14:23:52,708][__main__][INFO] - Task: QA
+[2026-01-22 14:23:52,708][__main__][INFO] - Level config: sample
+[2026-01-22 14:23:52,708][__main__][INFO] - ============================================================
+[2026-01-22 14:24:00,045][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 14:24:00,045][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-22 14:24:00,045][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 14:24:00,045][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 14:24:00,055][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-22 14:24:00,056][__main__][INFO] - Loaded 803 train samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA
+[2026-01-22 14:24:01,591][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 14:24:01,591][src.features.loader][INFO] -   sample_id: 12014
+[2026-01-22 14:24:01,591][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 14:24:01,591][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 14:24:01,593][src.features.loader][INFO] - Loaded 136 samples
+[2026-01-22 14:24:01,593][__main__][INFO] - Loaded 136 test samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA_test
+[2026-01-22 14:24:01,593][__main__][INFO] - Train: 803, Test: 136
+[2026-01-22 14:24:01,593][__main__][INFO] - 
+[2026-01-22 14:24:01,593][__main__][INFO] - ============================================================
+[2026-01-22 14:24:01,593][__main__][INFO] - Evaluating at level: sample
+[2026-01-22 14:24:01,593][__main__][INFO] - ============================================================
+[2026-01-22 14:24:01,846][src.methods.lapeigvals][INFO] - Loaded method from outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-22 14:24:01,847][__main__][INFO] - Loaded model from outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-22 14:56:54,177][__main__][INFO] - 
+[2026-01-22 14:56:54,192][__main__][INFO] - >>> [sample] Train (In-sample):
+[2026-01-22 14:56:54,192][__main__][INFO] -     AUROC: 0.9230
+[2026-01-22 14:56:54,192][__main__][INFO] -     AUPR:  0.8809
+[2026-01-22 14:56:54,192][__main__][INFO] - 
+[2026-01-22 14:56:54,192][__main__][INFO] - >>> [sample] Test (Out-of-sample):
+[2026-01-22 14:56:54,192][__main__][INFO] -     AUROC: 0.7204
+[2026-01-22 14:56:54,192][__main__][INFO] -     AUPR:  0.3475
+[2026-01-22 14:56:54,193][__main__][INFO] -     F1:    0.5155
+[2026-01-22 14:56:54,193][__main__][INFO] - 
+[2026-01-22 14:56:54,193][__main__][INFO] - Threshold: 0.0600
+[2026-01-22 14:56:54,210][__main__][INFO] - [sample] Results saved to outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/QA/lapeigvals/sample/eval_results.json
+[2026-01-22 14:56:54,238][__main__][INFO] - 
+[2026-01-22 14:56:54,238][__main__][INFO] - ============================================================
+[2026-01-22 14:56:54,239][__main__][INFO] - Evaluation Summary
+[2026-01-22 14:56:54,239][__main__][INFO] - ============================================================
+[2026-01-22 14:56:54,239][__main__][INFO] -   [sample] Test AUROC: 0.7204, AUPR: 0.3475, F1: 0.5155
+[2026-01-22 14:56:54,239][__main__][INFO] - ============================================================
+Traceback (most recent call last):
+  File "/share/home/tm902089733300000/a903202310/lys/research/hallucination-detection/scripts/train_probe.py", line 33, in <module>
+    from src.methods import create_method
+  File "/share/home/tm902089733300000/a903202310/lys/research/hallucination-detection/src/methods/__init__.py", line 50, in <module>
+    from .ensemble import EnsembleMethod, AutoEnsembleMethod
+ModuleNotFoundError: No module named 'src.methods.ensemble'
+Traceback (most recent call last):
+  File "/share/home/tm902089733300000/a903202310/lys/research/hallucination-detection/scripts/train_probe.py", line 33, in <module>
+    from src.methods import create_method
+  File "/share/home/tm902089733300000/a903202310/lys/research/hallucination-detection/src/methods/__init__.py", line 50, in <module>
+    from .ensemble import EnsembleMethod, AutoEnsembleMethod
+ModuleNotFoundError: No module named 'src.methods.ensemble'
+Traceback (most recent call last):
+  File "/share/home/tm902089733300000/a903202310/lys/research/hallucination-detection/scripts/train_probe.py", line 33, in <module>
+    from src.methods import create_method
+  File "/share/home/tm902089733300000/a903202310/lys/research/hallucination-detection/src/methods/__init__.py", line 50, in <module>
+    from .ensemble import EnsembleMethod, AutoEnsembleMethod
+ModuleNotFoundError: No module named 'src.methods.ensemble'
+Traceback (most recent call last):
+  File "/share/home/tm902089733300000/a903202310/lys/research/hallucination-detection/scripts/train_probe.py", line 33, in <module>
+    from src.methods import create_method
+  File "/share/home/tm902089733300000/a903202310/lys/research/hallucination-detection/src/methods/__init__.py", line 50, in <module>
+    from .ensemble import EnsembleMethod, AutoEnsembleMethod
+ModuleNotFoundError: No module named 'src.methods.ensemble'
+Traceback (most recent call last):
+  File "/share/home/tm902089733300000/a903202310/lys/research/hallucination-detection/scripts/evaluate.py", line 42, in <module>
+    from src.methods import create_method, BaseMethod
+  File "/share/home/tm902089733300000/a903202310/lys/research/hallucination-detection/src/methods/__init__.py", line 50, in <module>
+    from .ensemble import EnsembleMethod, AutoEnsembleMethod
+ModuleNotFoundError: No module named 'src.methods.ensemble'
+[2026-01-22 15:22:21,711][__main__][INFO] - ============================================================
+[2026-01-22 15:22:21,711][__main__][INFO] - Train Probe: lapeigvals
+[2026-01-22 15:22:21,711][__main__][INFO] - Dataset: ragtruth
+[2026-01-22 15:22:21,711][__main__][INFO] - Model: Mistral-7B-Instruct-v0.3
+[2026-01-22 15:22:21,711][__main__][INFO] - Task: Data2txt
+[2026-01-22 15:22:21,711][__main__][INFO] - ============================================================
+[2026-01-22 15:22:36,484][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 15:22:36,485][src.features.loader][INFO] -   sample_id: 10010
+[2026-01-22 15:22:36,485][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 15:22:36,485][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 15:22:36,493][src.features.loader][INFO] - Loaded 882 samples
+[2026-01-22 15:22:36,495][__main__][INFO] - Loaded 882 samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt
+[2026-01-22 15:22:36,495][__main__][INFO] - Train: 882 (823 positive)
+[2026-01-22 15:22:36,495][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-22 15:22:36,496][__main__][INFO] - 
+[2026-01-22 15:22:36,496][__main__][INFO] - ============================================================
+[2026-01-22 15:22:36,496][__main__][INFO] - Training at level: sample
+[2026-01-22 15:22:36,496][__main__][INFO] - ============================================================
+[2026-01-22 15:22:36,496][__main__][INFO] - Training lapeigvals at sample level...
+[2026-01-22 15:22:36,587][src.methods.lapeigvals][INFO] - Extracting features: 0/882 (0%)
+[2026-01-22 15:29:24,148][src.methods.lapeigvals][INFO] - Extracting features: 88/882 (10%)
+[2026-01-22 15:36:04,473][src.methods.lapeigvals][INFO] - Extracting features: 176/882 (20%)
+[2026-01-22 15:43:08,402][src.methods.lapeigvals][INFO] - Extracting features: 264/882 (30%)
+[2026-01-22 15:49:20,910][src.methods.lapeigvals][INFO] - Extracting features: 352/882 (40%)
+[2026-01-22 15:56:58,029][src.methods.lapeigvals][INFO] - Extracting features: 440/882 (50%)
+[2026-01-22 16:03:43,752][src.methods.lapeigvals][INFO] - Extracting features: 528/882 (60%)
+[2026-01-22 16:11:11,549][src.methods.lapeigvals][INFO] - Extracting features: 616/882 (70%)
+[2026-01-22 16:18:08,455][src.methods.lapeigvals][INFO] - Extracting features: 704/882 (80%)
+[2026-01-22 16:18:42,464][__main__][INFO] - ============================================================
+[2026-01-22 16:18:42,464][__main__][INFO] - Train Probe: lapeigvals
+[2026-01-22 16:18:42,465][__main__][INFO] - Dataset: ragtruth
+[2026-01-22 16:18:42,465][__main__][INFO] - Model: Mistral-7B-Instruct-v0.3
+[2026-01-22 16:18:42,465][__main__][INFO] - Task: Data2txt
+[2026-01-22 16:18:42,465][__main__][INFO] - ============================================================
+[2026-01-22 16:18:55,677][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 16:18:55,677][src.features.loader][INFO] -   sample_id: 10010
+[2026-01-22 16:18:55,677][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 16:18:55,677][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 16:18:55,686][src.features.loader][INFO] - Loaded 882 samples
+[2026-01-22 16:18:55,688][__main__][INFO] - Loaded 882 samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt
+[2026-01-22 16:18:55,689][__main__][INFO] - Train: 882 (823 positive)
+[2026-01-22 16:18:55,689][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-22 16:18:55,689][__main__][INFO] - 
+[2026-01-22 16:18:55,689][__main__][INFO] - ============================================================
+[2026-01-22 16:18:55,689][__main__][INFO] - Training at level: sample
+[2026-01-22 16:18:55,689][__main__][INFO] - ============================================================
+[2026-01-22 16:18:55,689][__main__][INFO] - Training lapeigvals at sample level...
+[2026-01-22 16:18:55,777][src.methods.lapeigvals][INFO] - Extracting features: 0/882 (0%)
+[2026-01-22 16:26:24,170][src.methods.lapeigvals][INFO] - Extracting features: 792/882 (90%)
+[2026-01-22 16:26:29,019][src.methods.lapeigvals][INFO] - Extracting features: 88/882 (10%)
+[2026-01-22 16:33:53,178][src.methods.lapeigvals][INFO] - Extracting features: 176/882 (20%)
+[2026-01-22 16:33:56,531][src.methods.lapeigvals][INFO] - Extracting features: 880/882 (100%)
+[2026-01-22 16:34:05,581][src.methods.lapeigvals][INFO] - Extracted features: (882, 102400), Labels: (882,)
+[2026-01-22 16:34:05,582][src.methods.lapeigvals][INFO] - Class distribution: 0=59, 1=823
+[2026-01-22 16:34:21,356][src.methods.lapeigvals][INFO] - PCA: 102400 -> 512
+/share/home/tm902089733300000/a903202310/lys/conda_envs/lapeigvals/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:465: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+[2026-01-22 16:42:19,926][src.methods.lapeigvals][INFO] - Extracting features: 264/882 (30%)
+[2026-01-22 16:49:55,220][src.methods.lapeigvals][INFO] - Extracting features: 352/882 (40%)
+[2026-01-22 16:58:13,750][src.methods.lapeigvals][INFO] - Extracting features: 440/882 (50%)
+[2026-01-22 17:05:33,968][src.methods.lapeigvals][INFO] - Extracting features: 528/882 (60%)
+[2026-01-22 17:13:54,351][src.methods.lapeigvals][INFO] - Extracting features: 616/882 (70%)
+[2026-01-22 17:21:06,767][src.methods.lapeigvals][INFO] - Extracting features: 704/882 (80%)
+[2026-01-22 17:29:19,011][src.methods.lapeigvals][INFO] - Extracting features: 792/882 (90%)
+[2026-01-22 17:36:18,509][src.methods.lapeigvals][INFO] - Extracting features: 880/882 (100%)
+[2026-01-22 17:36:28,143][src.methods.lapeigvals][INFO] - Extracted features: (882, 102400), Labels: (882,)
+[2026-01-22 17:36:28,144][src.methods.lapeigvals][INFO] - Class distribution: 0=59, 1=823
+[2026-01-22 17:36:48,065][src.methods.lapeigvals][INFO] - PCA: 102400 -> 512
+/share/home/tm902089733300000/a903202310/lys/conda_envs/lapeigvals/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:465: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+[2026-01-22 17:43:04,807][__main__][INFO] - ----------------------------------------
+[2026-01-22 17:43:04,853][__main__][INFO] - [sample] Train AUROC: 0.9748
+[2026-01-22 17:43:04,853][__main__][INFO] - [sample] Train AUPR:  0.9964
+[2026-01-22 17:43:04,853][__main__][INFO] - ----------------------------------------
+[2026-01-22 17:43:06,280][src.methods.lapeigvals][INFO] - Saved method to outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/lapeigvals/sample/model.pkl
+[2026-01-22 17:43:06,281][__main__][INFO] - 
+[2026-01-22 17:43:06,281][__main__][INFO] - [sample] Performance Metrics:
+[2026-01-22 17:43:06,281][__main__][INFO] -   Training Time: 4307.06s
+[2026-01-22 17:43:06,281][__main__][INFO] -   Peak CPU Memory: 1652.2 MB
+[2026-01-22 17:43:06,281][__main__][INFO] -   Peak GPU Memory: 0.0 MB
+[2026-01-22 17:43:06,281][__main__][INFO] -   Model Size: 202.75 MB
+[2026-01-22 17:43:06,357][__main__][INFO] - [sample] Model saved to: outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/lapeigvals/sample/model.pkl
+[2026-01-22 17:43:06,357][__main__][INFO] - [sample] Metrics saved to: outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/lapeigvals/sample/train_metrics.json
+[2026-01-22 17:43:06,359][__main__][INFO] - 
+[2026-01-22 17:43:06,359][__main__][INFO] - ============================================================
+[2026-01-22 17:43:06,359][__main__][INFO] - Training Summary
+[2026-01-22 17:43:06,359][__main__][INFO] - ============================================================
+[2026-01-22 17:43:06,359][__main__][INFO] -   [sample] AUROC: 0.9748, AUPR: 0.9964
+[2026-01-22 17:43:06,359][__main__][INFO] - ============================================================
+[2026-01-22 17:44:58,054][__main__][INFO] - ============================================================
+[2026-01-22 17:44:58,055][__main__][INFO] - Evaluate: lapeigvals
+[2026-01-22 17:44:58,055][__main__][INFO] - Dataset: ragtruth
+[2026-01-22 17:44:58,055][__main__][INFO] - Model: Mistral-7B-Instruct-v0.3
+[2026-01-22 17:44:58,055][__main__][INFO] - Task: Data2txt
+[2026-01-22 17:44:58,055][__main__][INFO] - Level config: sample
+[2026-01-22 17:44:58,055][__main__][INFO] - ============================================================
+[2026-01-22 17:45:12,038][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 17:45:12,038][src.features.loader][INFO] -   sample_id: 10010
+[2026-01-22 17:45:12,038][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 17:45:12,038][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 17:45:12,052][src.features.loader][INFO] - Loaded 882 samples
+[2026-01-22 17:45:12,054][__main__][INFO] - Loaded 882 train samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt
+[2026-01-22 17:45:14,965][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 17:45:14,966][src.features.loader][INFO] -   sample_id: 10004
+[2026-01-22 17:45:14,966][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 17:45:14,966][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 17:45:14,967][src.features.loader][INFO] - Loaded 150 samples
+[2026-01-22 17:45:14,968][__main__][INFO] - Loaded 150 test samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt_test
+[2026-01-22 17:45:14,968][__main__][INFO] - Train: 882, Test: 150
+[2026-01-22 17:45:14,968][__main__][INFO] - 
+[2026-01-22 17:45:14,968][__main__][INFO] - ============================================================
+[2026-01-22 17:45:14,968][__main__][INFO] - Evaluating at level: sample
+[2026-01-22 17:45:14,968][__main__][INFO] - ============================================================
+[2026-01-22 17:45:15,099][src.methods.lapeigvals][INFO] - Loaded method from outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/lapeigvals/sample/model.pkl
+[2026-01-22 17:45:15,100][__main__][INFO] - Loaded model from outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/lapeigvals/sample/model.pkl
+[2026-01-22 18:43:09,469][__main__][INFO] - ----------------------------------------
+[2026-01-22 18:43:09,476][__main__][INFO] - [sample] Train AUROC: 0.9748
+[2026-01-22 18:43:09,476][__main__][INFO] - [sample] Train AUPR:  0.9964
+[2026-01-22 18:43:09,476][__main__][INFO] - ----------------------------------------
+[2026-01-22 18:43:10,403][src.methods.lapeigvals][INFO] - Saved method to outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/lapeigvals/sample/model.pkl
+[2026-01-22 18:43:10,404][__main__][INFO] - 
+[2026-01-22 18:43:10,404][__main__][INFO] - [sample] Performance Metrics:
+[2026-01-22 18:43:10,404][__main__][INFO] -   Training Time: 4675.74s
+[2026-01-22 18:43:10,404][__main__][INFO] -   Peak CPU Memory: 1652.2 MB
+[2026-01-22 18:43:10,404][__main__][INFO] -   Peak GPU Memory: 0.0 MB
+[2026-01-22 18:43:10,404][__main__][INFO] -   Model Size: 202.75 MB
+[2026-01-22 18:43:10,455][__main__][INFO] - [sample] Model saved to: outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/lapeigvals/sample/model.pkl
+[2026-01-22 18:43:10,455][__main__][INFO] - [sample] Metrics saved to: outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/lapeigvals/sample/train_metrics.json
+[2026-01-22 18:43:10,467][__main__][INFO] - 
+[2026-01-22 18:43:10,467][__main__][INFO] - ============================================================
+[2026-01-22 18:43:10,467][__main__][INFO] - Training Summary
+[2026-01-22 18:43:10,467][__main__][INFO] - ============================================================
+[2026-01-22 18:43:10,467][__main__][INFO] -   [sample] AUROC: 0.9748, AUPR: 0.9964
+[2026-01-22 18:43:10,467][__main__][INFO] - ============================================================
+[2026-01-22 18:44:08,041][__main__][INFO] - ============================================================
+[2026-01-22 18:44:08,042][__main__][INFO] - Evaluate: lapeigvals
+[2026-01-22 18:44:08,042][__main__][INFO] - Dataset: ragtruth
+[2026-01-22 18:44:08,042][__main__][INFO] - Model: Mistral-7B-Instruct-v0.3
+[2026-01-22 18:44:08,042][__main__][INFO] - Task: Data2txt
+[2026-01-22 18:44:08,042][__main__][INFO] - Level config: sample
+[2026-01-22 18:44:08,042][__main__][INFO] - ============================================================
+[2026-01-22 18:44:22,955][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 18:44:22,955][src.features.loader][INFO] -   sample_id: 10010
+[2026-01-22 18:44:22,955][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 18:44:22,955][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 18:44:22,964][src.features.loader][INFO] - Loaded 882 samples
+[2026-01-22 18:44:22,966][__main__][INFO] - Loaded 882 train samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt
+[2026-01-22 18:44:25,166][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 18:44:25,166][src.features.loader][INFO] -   sample_id: 10004
+[2026-01-22 18:44:25,166][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 18:44:25,166][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 18:44:25,168][src.features.loader][INFO] - Loaded 150 samples
+[2026-01-22 18:44:25,168][__main__][INFO] - Loaded 150 test samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt_test
+[2026-01-22 18:44:25,168][__main__][INFO] - Train: 882, Test: 150
+[2026-01-22 18:44:25,168][__main__][INFO] - 
+[2026-01-22 18:44:25,168][__main__][INFO] - ============================================================
+[2026-01-22 18:44:25,168][__main__][INFO] - Evaluating at level: sample
+[2026-01-22 18:44:25,168][__main__][INFO] - ============================================================
+[2026-01-22 18:44:25,339][src.methods.lapeigvals][INFO] - Loaded method from outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/lapeigvals/sample/model.pkl
+[2026-01-22 18:44:25,340][__main__][INFO] - Loaded model from outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/lapeigvals/sample/model.pkl
+[2026-01-22 19:20:50,508][__main__][INFO] - 
+[2026-01-22 19:20:50,523][__main__][INFO] - >>> [sample] Train (In-sample):
+[2026-01-22 19:20:50,523][__main__][INFO] -     AUROC: 0.9748
+[2026-01-22 19:20:50,523][__main__][INFO] -     AUPR:  0.9964
+[2026-01-22 19:20:50,523][__main__][INFO] - 
+[2026-01-22 19:20:50,523][__main__][INFO] - >>> [sample] Test (Out-of-sample):
+[2026-01-22 19:20:50,523][__main__][INFO] -     AUROC: 0.4548
+[2026-01-22 19:20:50,523][__main__][INFO] -     AUPR:  0.8785
+[2026-01-22 19:20:50,523][__main__][INFO] -     F1:    0.9357
+[2026-01-22 19:20:50,524][__main__][INFO] - 
+[2026-01-22 19:20:50,524][__main__][INFO] - Threshold: 0.0100
+[2026-01-22 19:20:50,585][__main__][INFO] - [sample] Results saved to outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/lapeigvals/sample/eval_results.json
+[2026-01-22 19:20:50,636][__main__][INFO] - 
+[2026-01-22 19:20:50,636][__main__][INFO] - ============================================================
+[2026-01-22 19:20:50,636][__main__][INFO] - Evaluation Summary
+[2026-01-22 19:20:50,636][__main__][INFO] - ============================================================
+[2026-01-22 19:20:50,636][__main__][INFO] -   [sample] Test AUROC: 0.4548, AUPR: 0.8785, F1: 0.9357
+[2026-01-22 19:20:50,636][__main__][INFO] - ============================================================
+[2026-01-22 19:21:51,245][__main__][INFO] - ============================================================
+[2026-01-22 19:21:51,246][__main__][INFO] - Train Probe: lapeigvals
+[2026-01-22 19:21:51,246][__main__][INFO] - Dataset: ragtruth
+[2026-01-22 19:21:51,246][__main__][INFO] - Model: Mistral-7B-Instruct-v0.3
+[2026-01-22 19:21:51,246][__main__][INFO] - Task: Summary
+[2026-01-22 19:21:51,246][__main__][INFO] - ============================================================
+[2026-01-22 19:22:05,253][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 19:22:05,253][src.features.loader][INFO] -   sample_id: 1004
+[2026-01-22 19:22:05,253][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 19:22:05,253][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 19:22:05,262][src.features.loader][INFO] - Loaded 790 samples
+[2026-01-22 19:22:05,263][__main__][INFO] - Loaded 790 samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Summary
+[2026-01-22 19:22:05,263][__main__][INFO] - Train: 790 (529 positive)
+[2026-01-22 19:22:05,263][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-22 19:22:05,264][__main__][INFO] - 
+[2026-01-22 19:22:05,264][__main__][INFO] - ============================================================
+[2026-01-22 19:22:05,264][__main__][INFO] - Training at level: sample
+[2026-01-22 19:22:05,264][__main__][INFO] - ============================================================
+[2026-01-22 19:22:05,264][__main__][INFO] - Training lapeigvals at sample level...
+[2026-01-22 19:22:05,353][src.methods.lapeigvals][INFO] - Extracting features: 0/790 (0%)
+[2026-01-22 19:30:11,298][src.methods.lapeigvals][INFO] - Extracting features: 79/790 (10%)
+[2026-01-22 19:37:00,190][src.methods.lapeigvals][INFO] - Extracting features: 158/790 (20%)
+[2026-01-22 19:46:32,908][src.methods.lapeigvals][INFO] - Extracting features: 237/790 (30%)
+[2026-01-22 19:55:02,302][src.methods.lapeigvals][INFO] - Extracting features: 316/790 (40%)
+[2026-01-22 20:04:09,503][src.methods.lapeigvals][INFO] - Extracting features: 395/790 (50%)
+[2026-01-22 20:09:06,424][src.methods.lapeigvals][INFO] - Extracting features: 474/790 (60%)
+[2026-01-22 20:11:54,036][src.methods.lapeigvals][INFO] - Extracting features: 553/790 (70%)
+[2026-01-22 20:15:10,825][src.methods.lapeigvals][INFO] - Extracting features: 632/790 (80%)
+[2026-01-22 20:18:28,294][src.methods.lapeigvals][INFO] - Extracting features: 711/790 (90%)
+[2026-01-22 20:19:55,649][__main__][INFO] - 
+[2026-01-22 20:19:55,650][__main__][INFO] - >>> [sample] Train (In-sample):
+[2026-01-22 20:19:55,650][__main__][INFO] -     AUROC: 0.9748
+[2026-01-22 20:19:55,650][__main__][INFO] -     AUPR:  0.9964
+[2026-01-22 20:19:55,650][__main__][INFO] - 
+[2026-01-22 20:19:55,650][__main__][INFO] - >>> [sample] Test (Out-of-sample):
+[2026-01-22 20:19:55,650][__main__][INFO] -     AUROC: 0.4548
+[2026-01-22 20:19:55,650][__main__][INFO] -     AUPR:  0.8785
+[2026-01-22 20:19:55,650][__main__][INFO] -     F1:    0.9357
+[2026-01-22 20:19:55,650][__main__][INFO] - 
+[2026-01-22 20:19:55,650][__main__][INFO] - Threshold: 0.0100
+[2026-01-22 20:19:55,714][__main__][INFO] - [sample] Results saved to outputs/models/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Data2txt/lapeigvals/sample/eval_results.json
+[2026-01-22 20:19:55,754][__main__][INFO] - 
+[2026-01-22 20:19:55,754][__main__][INFO] - ============================================================
+[2026-01-22 20:19:55,754][__main__][INFO] - Evaluation Summary
+[2026-01-22 20:19:55,754][__main__][INFO] - ============================================================
+[2026-01-22 20:19:55,754][__main__][INFO] -   [sample] Test AUROC: 0.4548, AUPR: 0.8785, F1: 0.9357
+[2026-01-22 20:19:55,754][__main__][INFO] - ============================================================
+[2026-01-22 20:21:39,773][__main__][INFO] - ============================================================
+[2026-01-22 20:21:39,774][__main__][INFO] - Train Probe: lapeigvals
+[2026-01-22 20:21:39,774][__main__][INFO] - Dataset: ragtruth
+[2026-01-22 20:21:39,774][__main__][INFO] - Model: Mistral-7B-Instruct-v0.3
+[2026-01-22 20:21:39,774][__main__][INFO] - Task: Summary
+[2026-01-22 20:21:39,774][__main__][INFO] - ============================================================
+[2026-01-22 20:21:51,319][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 20:21:51,319][src.features.loader][INFO] -   sample_id: 1004
+[2026-01-22 20:21:51,319][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 20:21:51,319][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 20:21:51,327][src.features.loader][INFO] - Loaded 790 samples
+[2026-01-22 20:21:51,328][__main__][INFO] - Loaded 790 samples from outputs/features/ragtruth/Mistral-7B-Instruct-v0.3/seed_42/Summary
+[2026-01-22 20:21:51,329][__main__][INFO] - Train: 790 (529 positive)
+[2026-01-22 20:21:51,329][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-22 20:21:51,329][__main__][INFO] - 
+[2026-01-22 20:21:51,329][__main__][INFO] - ============================================================
+[2026-01-22 20:21:51,329][__main__][INFO] - Training at level: sample
+[2026-01-22 20:21:51,329][__main__][INFO] - ============================================================
+[2026-01-22 20:21:51,329][__main__][INFO] - Training lapeigvals at sample level...
+[2026-01-22 20:21:51,420][src.methods.lapeigvals][INFO] - Extracting features: 0/790 (0%)
+[2026-01-22 20:22:25,201][src.methods.lapeigvals][INFO] - Extracted features: (790, 102400), Labels: (790,)
+[2026-01-22 20:22:25,202][src.methods.lapeigvals][INFO] - Class distribution: 0=261, 1=529
+[2026-01-22 20:22:40,849][src.methods.lapeigvals][INFO] - PCA: 102400 -> 512
+[2026-01-22 20:28:28,227][src.methods.lapeigvals][INFO] - Extracting features: 79/790 (10%)

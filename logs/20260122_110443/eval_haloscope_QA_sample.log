@@ -1,0 +1,31 @@
+[2026-01-22 11:51:34,676][__main__][INFO] - ============================================================
+[2026-01-22 11:51:34,676][__main__][INFO] - Evaluate: haloscope
+[2026-01-22 11:51:34,676][__main__][INFO] - Dataset: ragtruth
+[2026-01-22 11:51:34,676][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-22 11:51:34,676][__main__][INFO] - Task: QA
+[2026-01-22 11:51:34,676][__main__][INFO] - Level config: sample
+[2026-01-22 11:51:34,676][__main__][INFO] - ============================================================
+[2026-01-22 11:51:41,350][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 11:51:41,351][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-22 11:51:41,351][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 11:51:41,351][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 11:51:41,360][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-22 11:51:41,361][__main__][INFO] - Loaded 803 train samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA
+[2026-01-22 11:51:42,600][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 11:51:42,601][src.features.loader][INFO] -   sample_id: 12044
+[2026-01-22 11:51:42,601][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 11:51:42,601][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 11:51:42,603][src.features.loader][INFO] - Loaded 136 samples
+[2026-01-22 11:51:42,603][__main__][INFO] - Loaded 136 test samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA_test
+[2026-01-22 11:51:42,603][__main__][INFO] - Train: 803, Test: 136
+[2026-01-22 11:51:42,603][__main__][INFO] - 
+[2026-01-22 11:51:42,603][__main__][INFO] - ============================================================
+[2026-01-22 11:51:42,604][__main__][INFO] - Evaluating at level: sample
+[2026-01-22 11:51:42,604][__main__][INFO] - ============================================================
+[2026-01-22 11:51:42,607][__main__][WARNING] - Model not found for level 'sample': outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/haloscope/sample/model.pkl
+[2026-01-22 11:51:42,607][__main__][WARNING] - Skipping sample-level evaluation.
+[2026-01-22 11:51:42,607][__main__][INFO] - 
+[2026-01-22 11:51:42,607][__main__][INFO] - ============================================================
+[2026-01-22 11:51:42,607][__main__][INFO] - Evaluation Summary
+[2026-01-22 11:51:42,607][__main__][INFO] - ============================================================
+[2026-01-22 11:51:42,607][__main__][INFO] - ============================================================

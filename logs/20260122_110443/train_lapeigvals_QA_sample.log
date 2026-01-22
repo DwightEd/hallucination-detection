@@ -29,3 +29,22 @@
 [2026-01-22 11:06:39,295][src.methods.base][INFO] - Extracting features: 720/803 (90%)
 [2026-01-22 11:06:42,422][src.methods.base][INFO] - Extracting features: 800/803 (100%)
 [2026-01-22 11:06:42,556][src.methods.base][INFO] - Training on 803 samples, feature dim=15360
+[2026-01-22 11:08:57,539][__main__][INFO] - ----------------------------------------
+[2026-01-22 11:08:57,540][__main__][INFO] - [sample] Train AUROC: 1.0000
+[2026-01-22 11:08:57,540][__main__][INFO] - [sample] Train AUPR:  1.0000
+[2026-01-22 11:08:57,540][__main__][INFO] - ----------------------------------------
+[2026-01-22 11:08:57,664][src.methods.base][INFO] - Saved method to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-22 11:08:57,666][__main__][INFO] - 
+[2026-01-22 11:08:57,667][__main__][INFO] - [sample] Performance Metrics:
+[2026-01-22 11:08:57,667][__main__][INFO] -   Training Time: 34.83s
+[2026-01-22 11:08:57,667][__main__][INFO] -   Peak CPU Memory: 193.6 MB
+[2026-01-22 11:08:57,667][__main__][INFO] -   Peak GPU Memory: 0.0 MB
+[2026-01-22 11:08:57,667][__main__][INFO] -   Model Size: 0.47 MB
+[2026-01-22 11:08:57,698][__main__][INFO] - [sample] Model saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-22 11:08:57,699][__main__][INFO] - [sample] Metrics saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/train_metrics.json
+[2026-01-22 11:08:57,699][__main__][INFO] - 
+[2026-01-22 11:08:57,699][__main__][INFO] - ============================================================
+[2026-01-22 11:08:57,699][__main__][INFO] - Training Summary
+[2026-01-22 11:08:57,699][__main__][INFO] - ============================================================
+[2026-01-22 11:08:57,699][__main__][INFO] -   [sample] AUROC: 1.0000, AUPR: 1.0000
+[2026-01-22 11:08:57,699][__main__][INFO] - ============================================================

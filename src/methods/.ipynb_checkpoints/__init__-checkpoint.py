@@ -5,7 +5,6 @@ Available methods:
 - lookback_lens: Attention ratio analysis
 - token_entropy: Token/attention entropy-based (原 entropy)
 - semantic_entropy_probes: SEPs from hidden states (OATML)
-- ensemble: Combined methods (voting, stacking, concat)
 - hypergraph: Hypergraph neural network (HyperCHARM)
 - haloscope: SVD-based unsupervised detection (NeurIPS'24)
 - hsdmvaf: Multi-view attention with Transformer+CRF
@@ -47,7 +46,6 @@ from .lapeigvals import LapEigvalsMethod, LapEigvalsFullMethod
 from .lookback_lens import LookbackLensMethod, AttentionStatsMethod
 from .token_entropy import TokenEntropyMethod, PerplexityMethod
 from .semantic_entropy_probes import SemanticEntropyProbesMethod, HiddenStateProbeMethod
-from .ensemble import EnsembleMethod, AutoEnsembleMethod
 from .hypergraph import HypergraphMethod, HypergraphTokenMethod, HyperCHARMModel, HypergraphData, HypergraphBuilder
 from .haloscope import HaloScopeDetector, HaloScopeMethod  # 添加 HaloScopeMethod
 from .hsdmvaf import HSDMVAFMethod, HSDMVAFDetector, MultiViewAttentionEncoder
@@ -78,10 +76,6 @@ __all__ = [
     # Semantic Entropy Probes (新增)
     "SemanticEntropyProbesMethod",
     "HiddenStateProbeMethod",
-    
-    # Ensemble
-    "EnsembleMethod",
-    "AutoEnsembleMethod",
     
     # Hypergraph
     "HypergraphMethod",

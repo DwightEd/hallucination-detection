@@ -1,0 +1,48 @@
+[2026-01-22 11:19:41,178][__main__][INFO] - ============================================================
+[2026-01-22 11:19:41,178][__main__][INFO] - Train Probe: haloscope
+[2026-01-22 11:19:41,178][__main__][INFO] - Dataset: ragtruth
+[2026-01-22 11:19:41,178][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-22 11:19:41,178][__main__][INFO] - Task: QA
+[2026-01-22 11:19:41,178][__main__][INFO] - ============================================================
+[2026-01-22 11:19:48,408][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-22 11:19:48,409][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-22 11:19:48,409][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-22 11:19:48,409][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-22 11:19:48,419][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-22 11:19:48,420][__main__][INFO] - Loaded 803 samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA
+[2026-01-22 11:19:48,420][__main__][INFO] - Train: 803 (347 positive)
+[2026-01-22 11:19:48,420][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-22 11:19:48,420][__main__][INFO] - 
+[2026-01-22 11:19:48,420][__main__][INFO] - ============================================================
+[2026-01-22 11:19:48,421][__main__][INFO] - Training at level: sample
+[2026-01-22 11:19:48,421][__main__][INFO] - ============================================================
+[2026-01-22 11:19:48,421][__main__][INFO] - Training haloscope at sample level...
+[2026-01-22 11:30:48,217][src.methods.haloscope][INFO] - Fitting HaloScope SVD on 803 samples
+[2026-01-22 11:34:38,764][src.methods.haloscope][INFO] - SVD completed, top singular values: [268.18744 252.23581 198.73123 178.25534 151.58669]
+[2026-01-22 11:34:38,868][src.methods.haloscope][INFO] - Reference scores: mean=13034.4281, std=15909.5636
+[2026-01-22 11:46:49,694][src.methods.haloscope][INFO] - Training MLP on 803 samples, feature dim=32768
+[2026-01-22 11:46:51,046][src.methods.haloscope][INFO] - Epoch 10/50, Loss: 0.6446
+[2026-01-22 11:46:51,232][src.methods.haloscope][INFO] - Epoch 20/50, Loss: 0.6043
+[2026-01-22 11:46:51,424][src.methods.haloscope][INFO] - Epoch 30/50, Loss: 0.5714
+[2026-01-22 11:46:51,623][src.methods.haloscope][INFO] - Epoch 40/50, Loss: 0.5547
+[2026-01-22 11:46:51,802][src.methods.haloscope][INFO] - Epoch 50/50, Loss: 0.5494
+[2026-01-22 11:50:37,656][__main__][INFO] - ----------------------------------------
+[2026-01-22 11:50:37,664][__main__][INFO] - [sample] Train AUROC: 0.9073
+[2026-01-22 11:50:37,664][__main__][INFO] - [sample] Train AUPR:  0.8795
+[2026-01-22 11:50:37,664][__main__][INFO] - ----------------------------------------
+[2026-01-22 11:50:38,076][src.methods.haloscope][INFO] - HaloScope state saved to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/haloscope/sample/model
+[2026-01-22 11:50:38,083][src.methods.haloscope][INFO] - Saved HaloScope method to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/haloscope/sample/model
+[2026-01-22 11:50:38,085][__main__][INFO] - 
+[2026-01-22 11:50:38,085][__main__][INFO] - [sample] Performance Metrics:
+[2026-01-22 11:50:38,085][__main__][INFO] -   Training Time: 1635.26s
+[2026-01-22 11:50:38,085][__main__][INFO] -   Peak CPU Memory: 607.9 MB
+[2026-01-22 11:50:38,085][__main__][INFO] -   Peak GPU Memory: 612.4 MB
+[2026-01-22 11:50:38,085][__main__][INFO] -   Model Size: 0.00 MB
+[2026-01-22 11:50:38,151][__main__][INFO] - [sample] Model saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/haloscope/sample/model.pkl
+[2026-01-22 11:50:38,151][__main__][INFO] - [sample] Metrics saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/haloscope/sample/train_metrics.json
+[2026-01-22 11:50:38,152][__main__][INFO] - 
+[2026-01-22 11:50:38,152][__main__][INFO] - ============================================================
+[2026-01-22 11:50:38,152][__main__][INFO] - Training Summary
+[2026-01-22 11:50:38,152][__main__][INFO] - ============================================================
+[2026-01-22 11:50:38,153][__main__][INFO] -   [sample] AUROC: 0.9073, AUPR: 0.8795
+[2026-01-22 11:50:38,153][__main__][INFO] - ============================================================
