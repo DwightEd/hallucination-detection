@@ -27,11 +27,12 @@ set -e  # 遇到错误立即退出
 
 # 数据集配置
 DATASET="${DATASET:-ragtruth}"
-TASKS="${TASKS:-Data2txt Summary}"
+TASKS="${TASKS:-QA Data2txt Summary}"
 #QA
 # 模型配置
 MODEL="${MODEL:-mistral_7b}"
-MODEL_SHORT="${MODEL_SHORT:-Mistral-7B-Instruct-v0.3}"
+# MODEL_SHORT="${MODEL_SHORT:-Mistral-7B-Instruct-v0.3}"
+MODEL_SHORT="${MODEL_SHORT:-Llama-2-7b-chat-hf}"
 
 # 训练配置
 SEED="${SEED:-42}"

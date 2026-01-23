@@ -1,0 +1,385 @@
+[2026-01-23 10:14:46,917][__main__][INFO] - ============================================================
+[2026-01-23 10:14:46,918][__main__][INFO] - Train Probe: lapeigvals
+[2026-01-23 10:14:46,918][__main__][INFO] - Dataset: ragtruth
+[2026-01-23 10:14:46,918][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-23 10:14:46,918][__main__][INFO] - Task: QA
+[2026-01-23 10:14:46,919][__main__][INFO] - ============================================================
+[2026-01-23 10:14:52,713][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-23 10:14:52,714][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-23 10:14:52,714][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-23 10:14:52,714][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-23 10:14:52,733][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-23 10:14:52,734][__main__][INFO] - Loaded 803 samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA
+[2026-01-23 10:14:52,735][__main__][INFO] - Train: 803 (347 positive)
+[2026-01-23 10:14:52,735][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-23 10:14:52,735][__main__][INFO] - 
+[2026-01-23 10:14:52,735][__main__][INFO] - ============================================================
+[2026-01-23 10:14:52,735][__main__][INFO] - Training at level: sample
+[2026-01-23 10:14:52,735][__main__][INFO] - ============================================================
+[2026-01-23 10:14:52,736][__main__][INFO] - Training lapeigvals at sample level...
+[2026-01-23 10:14:52,813][src.methods.lapeigvals][INFO] - Extracting features: 0/803 (0%)
+[2026-01-23 10:16:51,731][src.methods.lapeigvals][INFO] - Extracting features: 80/803 (10%)
+[2026-01-23 10:18:58,561][src.methods.lapeigvals][INFO] - Extracting features: 160/803 (20%)
+[2026-01-23 10:21:00,296][src.methods.lapeigvals][INFO] - Extracting features: 240/803 (30%)
+[2026-01-23 10:22:52,031][src.methods.lapeigvals][INFO] - Extracting features: 320/803 (40%)
+[2026-01-23 10:24:49,497][src.methods.lapeigvals][INFO] - Extracting features: 400/803 (50%)
+[2026-01-23 10:26:46,367][src.methods.lapeigvals][INFO] - Extracting features: 480/803 (60%)
+[2026-01-23 10:28:35,797][src.methods.lapeigvals][INFO] - Extracting features: 560/803 (70%)
+[2026-01-23 10:29:47,369][src.methods.lapeigvals][INFO] - Extracting features: 640/803 (80%)
+[2026-01-23 10:31:43,941][src.methods.lapeigvals][INFO] - Extracting features: 720/803 (90%)
+[2026-01-23 10:33:54,620][src.methods.lapeigvals][INFO] - Extracting features: 800/803 (100%)
+[2026-01-23 10:34:03,598][src.methods.lapeigvals][INFO] - Extracted features: (803, 102400), Labels: (803,)
+[2026-01-23 10:34:03,598][src.methods.lapeigvals][INFO] - Class distribution: 0=456, 1=347
+[2026-01-23 10:34:19,527][src.methods.lapeigvals][INFO] - PCA: 102400 -> 512
+/share/home/tm902089733300000/a903202310/lys/conda_envs/lapeigvals/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:465: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+[2026-01-23 10:50:08,645][__main__][INFO] - ----------------------------------------
+[2026-01-23 10:50:08,645][__main__][INFO] - [sample] Train AUROC: 0.9823
+[2026-01-23 10:50:08,645][__main__][INFO] - [sample] Train AUPR:  0.9622
+[2026-01-23 10:50:08,646][__main__][INFO] - ----------------------------------------
+[2026-01-23 10:50:09,400][src.methods.lapeigvals][INFO] - Saved method to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-23 10:50:09,400][__main__][INFO] - 
+[2026-01-23 10:50:09,400][__main__][INFO] - [sample] Performance Metrics:
+[2026-01-23 10:50:09,400][__main__][INFO] -   Training Time: 1168.44s
+[2026-01-23 10:50:09,401][__main__][INFO] -   Peak CPU Memory: 1559.4 MB
+[2026-01-23 10:50:09,401][__main__][INFO] -   Peak GPU Memory: 0.0 MB
+[2026-01-23 10:50:09,401][__main__][INFO] -   Model Size: 202.75 MB
+[2026-01-23 10:50:09,417][__main__][INFO] - [sample] Model saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-23 10:50:09,417][__main__][INFO] - [sample] Metrics saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/train_metrics.json
+[2026-01-23 10:50:09,419][__main__][INFO] - 
+[2026-01-23 10:50:09,419][__main__][INFO] - ============================================================
+[2026-01-23 10:50:09,419][__main__][INFO] - Training Summary
+[2026-01-23 10:50:09,419][__main__][INFO] - ============================================================
+[2026-01-23 10:50:09,420][__main__][INFO] -   [sample] AUROC: 0.9823, AUPR: 0.9622
+[2026-01-23 10:50:09,420][__main__][INFO] - ============================================================
+[2026-01-23 10:50:36,762][__main__][INFO] - ============================================================
+[2026-01-23 10:50:36,763][__main__][INFO] - Evaluate: lapeigvals
+[2026-01-23 10:50:36,763][__main__][INFO] - Dataset: ragtruth
+[2026-01-23 10:50:36,763][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-23 10:50:36,763][__main__][INFO] - Task: QA
+[2026-01-23 10:50:36,763][__main__][INFO] - Level config: sample
+[2026-01-23 10:50:36,763][__main__][INFO] - ============================================================
+[2026-01-23 10:50:41,997][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-23 10:50:41,998][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-23 10:50:41,998][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-23 10:50:41,998][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-23 10:50:42,020][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-23 10:50:42,021][__main__][INFO] - Loaded 803 train samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA
+[2026-01-23 10:50:43,069][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-23 10:50:43,070][src.features.loader][INFO] -   sample_id: 12044
+[2026-01-23 10:50:43,070][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-23 10:50:43,070][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-23 10:50:43,074][src.features.loader][INFO] - Loaded 136 samples
+[2026-01-23 10:50:43,074][__main__][INFO] - Loaded 136 test samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA_test
+[2026-01-23 10:50:43,074][__main__][INFO] - Train: 803, Test: 136
+[2026-01-23 10:50:43,074][__main__][INFO] - 
+[2026-01-23 10:50:43,074][__main__][INFO] - ============================================================
+[2026-01-23 10:50:43,074][__main__][INFO] - Evaluating at level: sample
+[2026-01-23 10:50:43,075][__main__][INFO] - ============================================================
+[2026-01-23 10:50:43,151][src.methods.lapeigvals][INFO] - Loaded method from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-23 10:50:43,151][__main__][INFO] - Loaded model from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-23 11:12:10,699][__main__][INFO] - 
+[2026-01-23 11:12:10,705][__main__][INFO] - >>> [sample] Train (In-sample):
+[2026-01-23 11:12:10,705][__main__][INFO] -     AUROC: 0.9823
+[2026-01-23 11:12:10,705][__main__][INFO] -     AUPR:  0.9622
+[2026-01-23 11:12:10,705][__main__][INFO] - 
+[2026-01-23 11:12:10,705][__main__][INFO] - >>> [sample] Test (Out-of-sample):
+[2026-01-23 11:12:10,705][__main__][INFO] -     AUROC: 0.5637
+[2026-01-23 11:12:10,705][__main__][INFO] -     AUPR:  0.2612
+[2026-01-23 11:12:10,705][__main__][INFO] -     F1:    0.4000
+[2026-01-23 11:12:10,705][__main__][INFO] - 
+[2026-01-23 11:12:10,705][__main__][INFO] - Threshold: 0.0200
+[2026-01-23 11:12:10,773][__main__][INFO] - [sample] Results saved to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/eval_results.json
+[2026-01-23 11:12:10,790][__main__][INFO] - 
+[2026-01-23 11:12:10,790][__main__][INFO] - ============================================================
+[2026-01-23 11:12:10,790][__main__][INFO] - Evaluation Summary
+[2026-01-23 11:12:10,790][__main__][INFO] - ============================================================
+[2026-01-23 11:12:10,790][__main__][INFO] -   [sample] Test AUROC: 0.5637, AUPR: 0.2612, F1: 0.4000
+[2026-01-23 11:12:10,790][__main__][INFO] - ============================================================
+[2026-01-23 11:12:46,556][__main__][INFO] - ============================================================
+[2026-01-23 11:12:46,557][__main__][INFO] - Train Probe: lapeigvals
+[2026-01-23 11:12:46,557][__main__][INFO] - Dataset: ragtruth
+[2026-01-23 11:12:46,557][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-23 11:12:46,557][__main__][INFO] - Task: Data2txt
+[2026-01-23 11:12:46,557][__main__][INFO] - ============================================================
+[2026-01-23 11:12:55,439][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-23 11:12:55,439][src.features.loader][INFO] -   sample_id: 10022
+[2026-01-23 11:12:55,439][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-23 11:12:55,439][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-23 11:12:55,457][src.features.loader][INFO] - Loaded 882 samples
+[2026-01-23 11:12:55,460][__main__][INFO] - Loaded 882 samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/Data2txt
+[2026-01-23 11:12:55,460][__main__][INFO] - Train: 882 (823 positive)
+[2026-01-23 11:12:55,460][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-23 11:12:55,461][__main__][INFO] - 
+[2026-01-23 11:12:55,461][__main__][INFO] - ============================================================
+[2026-01-23 11:12:55,461][__main__][INFO] - Training at level: sample
+[2026-01-23 11:12:55,461][__main__][INFO] - ============================================================
+[2026-01-23 11:12:55,461][__main__][INFO] - Training lapeigvals at sample level...
+[2026-01-23 11:12:55,540][src.methods.lapeigvals][INFO] - Extracting features: 0/882 (0%)
+[2026-01-23 11:18:11,329][src.methods.lapeigvals][INFO] - Extracting features: 88/882 (10%)
+[2026-01-23 11:23:29,894][src.methods.lapeigvals][INFO] - Extracting features: 176/882 (20%)
+[2026-01-23 11:29:00,174][src.methods.lapeigvals][INFO] - Extracting features: 264/882 (30%)
+[2026-01-23 11:34:03,966][src.methods.lapeigvals][INFO] - Extracting features: 352/882 (40%)
+[2026-01-23 11:39:34,331][src.methods.lapeigvals][INFO] - Extracting features: 440/882 (50%)
+[2026-01-23 11:44:41,294][src.methods.lapeigvals][INFO] - Extracting features: 528/882 (60%)
+[2026-01-23 11:50:12,522][src.methods.lapeigvals][INFO] - Extracting features: 616/882 (70%)
+[2026-01-23 11:55:23,092][src.methods.lapeigvals][INFO] - Extracting features: 704/882 (80%)
+[2026-01-23 12:00:49,875][src.methods.lapeigvals][INFO] - Extracting features: 792/882 (90%)
+[2026-01-23 12:06:04,419][src.methods.lapeigvals][INFO] - Extracting features: 880/882 (100%)
+[2026-01-23 12:06:14,221][src.methods.lapeigvals][INFO] - Extracted features: (882, 102400), Labels: (882,)
+[2026-01-23 12:06:14,221][src.methods.lapeigvals][INFO] - Class distribution: 0=59, 1=823
+[2026-01-23 12:06:32,562][src.methods.lapeigvals][INFO] - PCA: 102400 -> 512
+/share/home/tm902089733300000/a903202310/lys/conda_envs/lapeigvals/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:465: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+[2026-01-23 12:54:02,541][__main__][INFO] - ============================================================
+[2026-01-23 12:54:02,541][__main__][INFO] - Train Probe: lapeigvals
+[2026-01-23 12:54:02,542][__main__][INFO] - Dataset: ragtruth
+[2026-01-23 12:54:02,542][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-23 12:54:02,542][__main__][INFO] - Task: QA
+[2026-01-23 12:54:02,542][__main__][INFO] - ============================================================
+[2026-01-23 12:54:08,421][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-23 12:54:08,422][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-23 12:54:08,422][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-23 12:54:08,422][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-23 12:54:08,445][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-23 12:54:08,446][__main__][INFO] - Loaded 803 samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA
+[2026-01-23 12:54:08,447][__main__][INFO] - Train: 803 (347 positive)
+[2026-01-23 12:54:08,447][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-23 12:54:08,447][__main__][INFO] - 
+[2026-01-23 12:54:08,447][__main__][INFO] - ============================================================
+[2026-01-23 12:54:08,447][__main__][INFO] - Training at level: sample
+[2026-01-23 12:54:08,447][__main__][INFO] - ============================================================
+[2026-01-23 12:54:08,447][__main__][INFO] - Training lapeigvals at sample level...
+[2026-01-23 12:54:08,523][src.methods.lapeigvals][INFO] - Extracting features: 0/803 (0%)
+[2026-01-23 12:56:12,273][src.methods.lapeigvals][INFO] - Extracting features: 80/803 (10%)
+[2026-01-23 12:58:23,895][src.methods.lapeigvals][INFO] - Extracting features: 160/803 (20%)
+[2026-01-23 13:00:29,531][src.methods.lapeigvals][INFO] - Extracting features: 240/803 (30%)
+[2026-01-23 13:02:24,182][src.methods.lapeigvals][INFO] - Extracting features: 320/803 (40%)
+[2026-01-23 13:04:24,332][src.methods.lapeigvals][INFO] - Extracting features: 400/803 (50%)
+[2026-01-23 13:06:25,096][src.methods.lapeigvals][INFO] - Extracting features: 480/803 (60%)
+[2026-01-23 13:08:18,472][src.methods.lapeigvals][INFO] - Extracting features: 560/803 (70%)
+[2026-01-23 13:09:32,562][src.methods.lapeigvals][INFO] - Extracting features: 640/803 (80%)
+[2026-01-23 13:11:33,884][src.methods.lapeigvals][INFO] - Extracting features: 720/803 (90%)
+[2026-01-23 13:13:48,078][src.methods.lapeigvals][INFO] - Extracting features: 800/803 (100%)
+[2026-01-23 13:13:57,105][src.methods.lapeigvals][INFO] - Extracted features: (803, 102400), Labels: (803,)
+[2026-01-23 13:13:57,106][src.methods.lapeigvals][INFO] - Class distribution: 0=456, 1=347
+[2026-01-23 13:14:13,515][src.methods.lapeigvals][INFO] - PCA: 102400 -> 512
+/share/home/tm902089733300000/a903202310/lys/conda_envs/lapeigvals/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:465: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+[2026-01-23 13:30:46,840][__main__][INFO] - ----------------------------------------
+[2026-01-23 13:30:46,845][__main__][INFO] - [sample] Train AUROC: 0.9823
+[2026-01-23 13:30:46,845][__main__][INFO] - [sample] Train AUPR:  0.9622
+[2026-01-23 13:30:46,845][__main__][INFO] - ----------------------------------------
+[2026-01-23 13:30:47,634][src.methods.lapeigvals][INFO] - Saved method to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-23 13:30:47,634][__main__][INFO] - 
+[2026-01-23 13:30:47,634][__main__][INFO] - [sample] Performance Metrics:
+[2026-01-23 13:30:47,635][__main__][INFO] -   Training Time: 1207.00s
+[2026-01-23 13:30:47,635][__main__][INFO] -   Peak CPU Memory: 1559.4 MB
+[2026-01-23 13:30:47,635][__main__][INFO] -   Peak GPU Memory: 0.0 MB
+[2026-01-23 13:30:47,635][__main__][INFO] -   Model Size: 202.75 MB
+[2026-01-23 13:30:47,663][__main__][INFO] - [sample] Model saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-23 13:30:47,663][__main__][INFO] - [sample] Metrics saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/train_metrics.json
+[2026-01-23 13:30:47,665][__main__][INFO] - 
+[2026-01-23 13:30:47,665][__main__][INFO] - ============================================================
+[2026-01-23 13:30:47,665][__main__][INFO] - Training Summary
+[2026-01-23 13:30:47,665][__main__][INFO] - ============================================================
+[2026-01-23 13:30:47,665][__main__][INFO] -   [sample] AUROC: 0.9823, AUPR: 0.9622
+[2026-01-23 13:30:47,665][__main__][INFO] - ============================================================
+[2026-01-23 13:31:17,378][__main__][INFO] - ============================================================
+[2026-01-23 13:31:17,378][__main__][INFO] - Evaluate: lapeigvals
+[2026-01-23 13:31:17,378][__main__][INFO] - Dataset: ragtruth
+[2026-01-23 13:31:17,378][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-23 13:31:17,378][__main__][INFO] - Task: QA
+[2026-01-23 13:31:17,378][__main__][INFO] - Level config: sample
+[2026-01-23 13:31:17,379][__main__][INFO] - ============================================================
+[2026-01-23 13:31:22,356][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-23 13:31:22,356][src.features.loader][INFO] -   sample_id: 11858
+[2026-01-23 13:31:22,356][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-23 13:31:22,356][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-23 13:31:22,373][src.features.loader][INFO] - Loaded 803 samples
+[2026-01-23 13:31:22,374][__main__][INFO] - Loaded 803 train samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA
+[2026-01-23 13:31:23,416][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-23 13:31:23,416][src.features.loader][INFO] -   sample_id: 12044
+[2026-01-23 13:31:23,416][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-23 13:31:23,416][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-23 13:31:23,420][src.features.loader][INFO] - Loaded 136 samples
+[2026-01-23 13:31:23,420][__main__][INFO] - Loaded 136 test samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/QA_test
+[2026-01-23 13:31:23,421][__main__][INFO] - Train: 803, Test: 136
+[2026-01-23 13:31:23,421][__main__][INFO] - 
+[2026-01-23 13:31:23,421][__main__][INFO] - ============================================================
+[2026-01-23 13:31:23,421][__main__][INFO] - Evaluating at level: sample
+[2026-01-23 13:31:23,421][__main__][INFO] - ============================================================
+[2026-01-23 13:31:23,501][src.methods.lapeigvals][INFO] - Loaded method from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-23 13:31:23,502][__main__][INFO] - Loaded model from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/model.pkl
+[2026-01-23 13:53:06,200][__main__][INFO] - 
+[2026-01-23 13:53:06,201][__main__][INFO] - >>> [sample] Train (In-sample):
+[2026-01-23 13:53:06,201][__main__][INFO] -     AUROC: 0.9823
+[2026-01-23 13:53:06,201][__main__][INFO] -     AUPR:  0.9622
+[2026-01-23 13:53:06,201][__main__][INFO] - 
+[2026-01-23 13:53:06,201][__main__][INFO] - >>> [sample] Test (Out-of-sample):
+[2026-01-23 13:53:06,201][__main__][INFO] -     AUROC: 0.5637
+[2026-01-23 13:53:06,201][__main__][INFO] -     AUPR:  0.2612
+[2026-01-23 13:53:06,201][__main__][INFO] -     F1:    0.4000
+[2026-01-23 13:53:06,201][__main__][INFO] - 
+[2026-01-23 13:53:06,201][__main__][INFO] - Threshold: 0.0200
+[2026-01-23 13:53:06,211][__main__][INFO] - [sample] Results saved to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/QA/lapeigvals/sample/eval_results.json
+[2026-01-23 13:53:06,233][__main__][INFO] - 
+[2026-01-23 13:53:06,233][__main__][INFO] - ============================================================
+[2026-01-23 13:53:06,233][__main__][INFO] - Evaluation Summary
+[2026-01-23 13:53:06,233][__main__][INFO] - ============================================================
+[2026-01-23 13:53:06,233][__main__][INFO] -   [sample] Test AUROC: 0.5637, AUPR: 0.2612, F1: 0.4000
+[2026-01-23 13:53:06,233][__main__][INFO] - ============================================================
+[2026-01-23 13:53:31,909][__main__][INFO] - ============================================================
+[2026-01-23 13:53:31,909][__main__][INFO] - Train Probe: lapeigvals
+[2026-01-23 13:53:31,910][__main__][INFO] - Dataset: ragtruth
+[2026-01-23 13:53:31,910][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-23 13:53:31,910][__main__][INFO] - Task: Data2txt
+[2026-01-23 13:53:31,910][__main__][INFO] - ============================================================
+[2026-01-23 13:53:40,348][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-23 13:53:40,348][src.features.loader][INFO] -   sample_id: 10022
+[2026-01-23 13:53:40,348][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-23 13:53:40,348][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-23 13:53:40,366][src.features.loader][INFO] - Loaded 882 samples
+[2026-01-23 13:53:40,369][__main__][INFO] - Loaded 882 samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/Data2txt
+[2026-01-23 13:53:40,370][__main__][INFO] - Train: 882 (823 positive)
+[2026-01-23 13:53:40,370][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-23 13:53:40,370][__main__][INFO] - 
+[2026-01-23 13:53:40,370][__main__][INFO] - ============================================================
+[2026-01-23 13:53:40,370][__main__][INFO] - Training at level: sample
+[2026-01-23 13:53:40,370][__main__][INFO] - ============================================================
+[2026-01-23 13:53:40,371][__main__][INFO] - Training lapeigvals at sample level...
+[2026-01-23 13:53:40,451][src.methods.lapeigvals][INFO] - Extracting features: 0/882 (0%)
+[2026-01-23 13:58:59,332][src.methods.lapeigvals][INFO] - Extracting features: 88/882 (10%)
+[2026-01-23 14:04:28,224][src.methods.lapeigvals][INFO] - Extracting features: 176/882 (20%)
+[2026-01-23 14:10:07,512][src.methods.lapeigvals][INFO] - Extracting features: 264/882 (30%)
+[2026-01-23 14:15:17,034][src.methods.lapeigvals][INFO] - Extracting features: 352/882 (40%)
+[2026-01-23 14:20:53,628][src.methods.lapeigvals][INFO] - Extracting features: 440/882 (50%)
+[2026-01-23 14:26:03,189][src.methods.lapeigvals][INFO] - Extracting features: 528/882 (60%)
+[2026-01-23 14:31:38,736][src.methods.lapeigvals][INFO] - Extracting features: 616/882 (70%)
+[2026-01-23 14:36:49,380][src.methods.lapeigvals][INFO] - Extracting features: 704/882 (80%)
+[2026-01-23 14:42:13,331][src.methods.lapeigvals][INFO] - Extracting features: 792/882 (90%)
+[2026-01-23 14:47:32,115][src.methods.lapeigvals][INFO] - Extracting features: 880/882 (100%)
+[2026-01-23 14:47:41,769][src.methods.lapeigvals][INFO] - Extracted features: (882, 102400), Labels: (882,)
+[2026-01-23 14:47:41,770][src.methods.lapeigvals][INFO] - Class distribution: 0=59, 1=823
+[2026-01-23 14:47:58,065][src.methods.lapeigvals][INFO] - PCA: 102400 -> 512
+/share/home/tm902089733300000/a903202310/lys/conda_envs/lapeigvals/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:465: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+[2026-01-23 15:36:17,480][__main__][INFO] - ----------------------------------------
+[2026-01-23 15:36:17,480][__main__][INFO] - [sample] Train AUROC: 0.9695
+[2026-01-23 15:36:17,481][__main__][INFO] - [sample] Train AUPR:  0.9957
+[2026-01-23 15:36:17,481][__main__][INFO] - ----------------------------------------
+[2026-01-23 15:36:18,189][src.methods.lapeigvals][INFO] - Saved method to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/Data2txt/lapeigvals/sample/model.pkl
+[2026-01-23 15:36:18,190][__main__][INFO] - 
+[2026-01-23 15:36:18,190][__main__][INFO] - [sample] Performance Metrics:
+[2026-01-23 15:36:18,190][__main__][INFO] -   Training Time: 3259.15s
+[2026-01-23 15:36:18,190][__main__][INFO] -   Peak CPU Memory: 1652.2 MB
+[2026-01-23 15:36:18,190][__main__][INFO] -   Peak GPU Memory: 0.0 MB
+[2026-01-23 15:36:18,190][__main__][INFO] -   Model Size: 202.75 MB
+[2026-01-23 15:36:18,213][__main__][INFO] - [sample] Model saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/Data2txt/lapeigvals/sample/model.pkl
+[2026-01-23 15:36:18,214][__main__][INFO] - [sample] Metrics saved to: outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/Data2txt/lapeigvals/sample/train_metrics.json
+[2026-01-23 15:36:18,216][__main__][INFO] - 
+[2026-01-23 15:36:18,217][__main__][INFO] - ============================================================
+[2026-01-23 15:36:18,217][__main__][INFO] - Training Summary
+[2026-01-23 15:36:18,217][__main__][INFO] - ============================================================
+[2026-01-23 15:36:18,217][__main__][INFO] -   [sample] AUROC: 0.9695, AUPR: 0.9957
+[2026-01-23 15:36:18,217][__main__][INFO] - ============================================================
+[2026-01-23 15:36:59,433][__main__][INFO] - ============================================================
+[2026-01-23 15:36:59,433][__main__][INFO] - Evaluate: lapeigvals
+[2026-01-23 15:36:59,433][__main__][INFO] - Dataset: ragtruth
+[2026-01-23 15:36:59,433][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-23 15:36:59,433][__main__][INFO] - Task: Data2txt
+[2026-01-23 15:36:59,433][__main__][INFO] - Level config: sample
+[2026-01-23 15:36:59,434][__main__][INFO] - ============================================================
+[2026-01-23 15:37:07,620][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-23 15:37:07,620][src.features.loader][INFO] -   sample_id: 10022
+[2026-01-23 15:37:07,620][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-23 15:37:07,620][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-23 15:37:07,634][src.features.loader][INFO] - Loaded 882 samples
+[2026-01-23 15:37:07,637][__main__][INFO] - Loaded 882 train samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/Data2txt
+[2026-01-23 15:37:09,626][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-23 15:37:09,626][src.features.loader][INFO] -   sample_id: 10208
+[2026-01-23 15:37:09,626][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-23 15:37:09,627][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-23 15:37:09,630][src.features.loader][INFO] - Loaded 150 samples
+[2026-01-23 15:37:09,631][__main__][INFO] - Loaded 150 test samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/Data2txt_test
+[2026-01-23 15:37:09,631][__main__][INFO] - Train: 882, Test: 150
+[2026-01-23 15:37:09,631][__main__][INFO] - 
+[2026-01-23 15:37:09,631][__main__][INFO] - ============================================================
+[2026-01-23 15:37:09,632][__main__][INFO] - Evaluating at level: sample
+[2026-01-23 15:37:09,632][__main__][INFO] - ============================================================
+[2026-01-23 15:37:09,758][src.methods.lapeigvals][INFO] - Loaded method from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/Data2txt/lapeigvals/sample/model.pkl
+[2026-01-23 15:37:09,759][__main__][INFO] - Loaded model from outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/Data2txt/lapeigvals/sample/model.pkl
+[2026-01-23 16:40:54,897][__main__][INFO] - 
+[2026-01-23 16:40:54,904][__main__][INFO] - >>> [sample] Train (In-sample):
+[2026-01-23 16:40:54,904][__main__][INFO] -     AUROC: 0.9695
+[2026-01-23 16:40:54,904][__main__][INFO] -     AUPR:  0.9957
+[2026-01-23 16:40:54,904][__main__][INFO] - 
+[2026-01-23 16:40:54,904][__main__][INFO] - >>> [sample] Test (Out-of-sample):
+[2026-01-23 16:40:54,904][__main__][INFO] -     AUROC: 0.3389
+[2026-01-23 16:40:54,905][__main__][INFO] -     AUPR:  0.8536
+[2026-01-23 16:40:54,905][__main__][INFO] -     F1:    0.9399
+[2026-01-23 16:40:54,905][__main__][INFO] - 
+[2026-01-23 16:40:54,905][__main__][INFO] - Threshold: 0.0100
+[2026-01-23 16:40:54,973][__main__][INFO] - [sample] Results saved to outputs/models/ragtruth/Llama-2-7b-chat-hf/seed_42/Data2txt/lapeigvals/sample/eval_results.json
+[2026-01-23 16:40:55,003][__main__][INFO] - 
+[2026-01-23 16:40:55,003][__main__][INFO] - ============================================================
+[2026-01-23 16:40:55,003][__main__][INFO] - Evaluation Summary
+[2026-01-23 16:40:55,003][__main__][INFO] - ============================================================
+[2026-01-23 16:40:55,004][__main__][INFO] -   [sample] Test AUROC: 0.3389, AUPR: 0.8536, F1: 0.9399
+[2026-01-23 16:40:55,004][__main__][INFO] - ============================================================
+[2026-01-23 16:41:23,088][__main__][INFO] - ============================================================
+[2026-01-23 16:41:23,089][__main__][INFO] - Train Probe: lapeigvals
+[2026-01-23 16:41:23,089][__main__][INFO] - Dataset: ragtruth
+[2026-01-23 16:41:23,089][__main__][INFO] - Model: Llama-2-7b-chat-hf
+[2026-01-23 16:41:23,089][__main__][INFO] - Task: Summary
+[2026-01-23 16:41:23,089][__main__][INFO] - ============================================================
+[2026-01-23 16:41:31,257][src.features.loader][INFO] - === First sample feature check ===
+[2026-01-23 16:41:31,258][src.features.loader][INFO] -   sample_id: 1040
+[2026-01-23 16:41:31,258][src.features.loader][INFO] -   Features matched: ['attn_diags', 'laplacian_diags', 'attn_entropy']
+[2026-01-23 16:41:31,258][src.features.loader][INFO] -   hidden_states: lazy-load available
+[2026-01-23 16:41:31,288][src.features.loader][INFO] - Loaded 790 samples
+[2026-01-23 16:41:31,291][__main__][INFO] - Loaded 790 samples from outputs/features/ragtruth/Llama-2-7b-chat-hf/seed_42/Summary
+[2026-01-23 16:41:31,291][__main__][INFO] - Train: 790 (529 positive)
+[2026-01-23 16:41:31,291][__main__][INFO] - Test:  0 (0 positive)
+[2026-01-23 16:41:31,292][__main__][INFO] - 
+[2026-01-23 16:41:31,292][__main__][INFO] - ============================================================
+[2026-01-23 16:41:31,292][__main__][INFO] - Training at level: sample
+[2026-01-23 16:41:31,292][__main__][INFO] - ============================================================
+[2026-01-23 16:41:31,292][__main__][INFO] - Training lapeigvals at sample level...
+[2026-01-23 16:41:31,373][src.methods.lapeigvals][INFO] - Extracting features: 0/790 (0%)
+[2026-01-23 16:46:08,156][src.methods.lapeigvals][INFO] - Extracting features: 79/790 (10%)
+[2026-01-23 16:50:38,324][src.methods.lapeigvals][INFO] - Extracting features: 158/790 (20%)
+[2026-01-23 16:56:50,878][src.methods.lapeigvals][INFO] - Extracting features: 237/790 (30%)
+[2026-01-23 17:03:09,778][src.methods.lapeigvals][INFO] - Extracting features: 316/790 (40%)
+[2026-01-23 17:10:01,999][src.methods.lapeigvals][INFO] - Extracting features: 395/790 (50%)
+[2026-01-23 17:14:51,385][src.methods.lapeigvals][INFO] - Extracting features: 474/790 (60%)
+[2026-01-23 17:17:27,692][src.methods.lapeigvals][INFO] - Extracting features: 553/790 (70%)
+[2026-01-23 17:19:55,830][src.methods.lapeigvals][INFO] - Extracting features: 632/790 (80%)
+[2026-01-23 17:22:28,486][src.methods.lapeigvals][INFO] - Extracting features: 711/790 (90%)
+[2026-01-23 17:26:16,113][src.methods.lapeigvals][INFO] - Extracted features: (790, 102400), Labels: (790,)
+[2026-01-23 17:26:16,114][src.methods.lapeigvals][INFO] - Class distribution: 0=261, 1=529
+[2026-01-23 17:26:32,032][src.methods.lapeigvals][INFO] - PCA: 102400 -> 512

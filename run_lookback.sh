@@ -31,8 +31,7 @@ TASKS="${TASKS:-QA Data2txt Summary}"
 #QA
 # 模型配置
 MODEL="${MODEL:-mistral_7b}"
-# MODEL_SHORT="${MODEL_SHORT:-Mistral-7B-Instruct-v0.3}"
-MODEL_SHORT="${MODEL_SHORT:-Llama-2-7b-chat-hf}"
+MODEL_SHORT="${MODEL_SHORT:-Mistral-7B-Instruct-v0.3}"
 
 # 训练配置
 SEED="${SEED:-42}"
